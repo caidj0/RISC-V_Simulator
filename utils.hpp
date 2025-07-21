@@ -1,11 +1,33 @@
-template <typename Fn>
+#include <functional>
+
+template <typename T>
 class Wire {
-    const Fn f;
+    const std::function<T(void)> f;
 
    public:
-    Wire(Fn f) : f(f) {}
-    auto value() -> decltype(f()) const { return f(); }
-    operator decltype(f())() const { return f(); }
+    Wire(std::function<T(void)> f) : f(f) {}
+    operator T() const { return f(); }
 };
 
-#define WIRE(expr) Wire([&]() {return (expr);})
+#define WIRE(expr) Wire<decltype(expr)>([&]() { return (expr); })
+
+class Updatable {
+    virtual void pull() = 0;
+    virtual void update() = 0;
+};
+
+template <typename T>
+class Reg : Updatable {
+    const std::function<T(void)> f;
+
+    T value;
+    T new_value;
+
+   public:
+    Reg(std::function<T(void)> f) : f(f) {}
+    operator T() const { return value; }
+    void pull() { new_value = f(); }
+    void update() { value = new_value; }
+};
+
+#define REG(expr) Reg<decltype(expr)>([&]() { return (expr); })
