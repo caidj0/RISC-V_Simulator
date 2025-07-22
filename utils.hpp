@@ -9,6 +9,10 @@ class Wire {
     Wire() : f([]() { return T(); }) {}
     Wire(std::function<T(void)> f) : f(f) {}
     operator T() const { return f(); }
+    Wire& operator=(std::function<T(void)> f) {
+        this->f = f;
+        return *this;
+    }
 };
 
 class Updatable {
@@ -23,11 +27,19 @@ class Reg : Updatable {
 
    public:
     std::function<T(void)> f;
-    Reg() : f([]() { return T(); }) {}
-    Reg(std::function<T(void)> f) : f(f) {}
+    Reg(std::function<T(void)> f) : f(f), value(), new_value() {}
+    Reg() : Reg([]() { return T(); }) {}
     operator T() const { return value; }
     void pull() { new_value = f(); }
     void update() { value = new_value; }
+    Reg& operator<=(const std::function<T(void)> f) {
+        this->f = f;
+        return *this;
+    }
+    Reg& operator=(const T value) {
+        this->value = value;
+        return *this;
+    };
 };
 
 #define LAM(expr) [&]() { return (expr); }
