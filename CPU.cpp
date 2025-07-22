@@ -37,7 +37,6 @@ void CPU::fetch() {
     regs.rd_data = LAM(0);
     regs.rs1 = LAM(0);
     regs.rs2 = LAM(0);
-
     PC <= LAM(PC);  // RISC-V 的地址偏移是以当前指令，而不是下一条指令！
 }
 
@@ -45,7 +44,7 @@ void CPU::decode() {
     full_instrction = mem;
 
     op = LAM(full_instrction & 0b1111111);
-    subop = LAM((full_instrction >> 12) & 0b111);
+    alu.op = LAM((full_instrction >> 12) & 0b111);
     rd = LAM((full_instrction >> 7) & 0b11111);
     rs1 = LAM((full_instrction >> 15) & 0b11111);
     rs2 = LAM((full_instrction >> 20) & 0b11111);
@@ -82,7 +81,7 @@ void CPU::decode() {
     };
 
     shamt = LAM((full_instrction & 0x01F00000U) >> 20);
-    variant_flag = LAM(full_instrction & 0x40000000U);
+    alu.variant_flag = LAM(full_instrction & 0x40000000U);
 
     regs.rs1 = [&]() -> uint8_t {
         if (op_type != U && op_type != J) {
@@ -109,6 +108,56 @@ void CPU::decode() {
     regs.rd_data = LAM(0);
 }
 
+void CPU::execute() {
+    alu.num_A = [&]() -> uint32_t {
+        switch (op_type) {
+            case U:
+                return op == 0b0110111 ? 0 : PC;
+                break;
+            case J:
+                return PC;
+                break;
+            case I:
+                return op == 0b1100111 ? PC : regs.rs1_data();
+                break;
+            case S:
+            case B:
+            case R:
+                return regs.rs1_data();
+                break;
+        }
+    };
+
+    alu.num_B = [&]() -> uint32_t {
+        switch (op_type) {
+            case U:
+                return imm;
+                break;
+            case J:
+                return 4;
+                break;
+            case I:
+                if (op == 0b1100111) {
+                    return 4;
+                } else {
+                    if (alu.op == 0b001 || alu.op == 0b101) {
+                        return shamt;
+                    } else {
+                        return sext<12>(imm);
+                    }
+                }
+                break;
+            case S:
+                return sext<12>(imm);
+                break;
+            case B:
+            case R:
+                return regs.rs2_data();
+                break;
+        }
+    };
+}
+
 void CPU::step() {
     switch (stage) {
         case 0:
@@ -117,8 +166,18 @@ void CPU::step() {
         case 1:
             decode();
             break;
+        case 2:
+            execute();
+            break;
+        case 3:
+            memory();
+            break;
+        case 4:
+            writeBack();
+            break;
     }
 
+    pullAndUpdate();
     cycle_time++;
     stage = (stage + 1) % 5;
 }
