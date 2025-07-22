@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 
 template <typename T>
@@ -5,6 +7,7 @@ class Wire {
     const std::function<T(void)> f;
 
    public:
+    Wire() : f([]() { return T(); }) {}
     Wire(std::function<T(void)> f) : f(f) {}
     operator T() const { return f(); }
 };
@@ -24,6 +27,7 @@ class Reg : Updatable {
     T new_value;
 
    public:
+    Reg() : f([]() { return T(); }) {}
     Reg(std::function<T(void)> f) : f(f) {}
     operator T() const { return value; }
     void pull() { new_value = f(); }
