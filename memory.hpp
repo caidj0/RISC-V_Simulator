@@ -5,7 +5,7 @@
 #include "utils.hpp"
 
 template <uint32_t S = 0x10000>
-class Memory : Updatable {
+class Memory : public Updatable {
     uint32_t out;
     uint8_t mems[S];
 

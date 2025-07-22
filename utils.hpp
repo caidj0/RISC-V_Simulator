@@ -16,12 +16,13 @@ class Wire {
 };
 
 class Updatable {
+   public:
     virtual void pull() = 0;
     virtual void update() = 0;
 };
 
 template <typename T>
-class Reg : Updatable {
+class Reg : public Updatable {
     T value;
     T new_value;
 

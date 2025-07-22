@@ -3,7 +3,7 @@
 
 #include "utils.hpp"
 
-class ALU : Updatable {
+class ALU : public Updatable {
     Reg<uint32_t> out;
 
    public:

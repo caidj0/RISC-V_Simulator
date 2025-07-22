@@ -2,7 +2,7 @@
 
 #include "utils.hpp"
 
-class Regs : Updatable {
+class Regs : public Updatable {
     Reg<uint32_t> regs[32];
     Reg<uint32_t> _rs1_data;
     Reg<uint32_t> _rs2_data;
