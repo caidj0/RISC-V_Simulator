@@ -7,8 +7,6 @@
 
 CPU::CPU() : PC(), mem(), regs(), cycle_time(0), stage(0) {}
 
-enum OpType { U, J, I, B, S, R };
-
 OpType get_opType(uint8_t op) {
     switch (op) {
         case 0b0110111:
@@ -40,7 +38,7 @@ void CPU::fetch() {
     regs.rs1 = LAM(0);
     regs.rs2 = LAM(0);
 
-    PC <= LAM(PC + 4);  // RISC-V 的地址偏移是以当前指令，而不是下一条指令！
+    PC <= LAM(PC);  // RISC-V 的地址偏移是以当前指令，而不是下一条指令！
 }
 
 void CPU::decode() {
@@ -51,6 +49,7 @@ void CPU::decode() {
     rd = LAM((full_instrction >> 7) & 0b11111);
     rs1 = LAM((full_instrction >> 15) & 0b11111);
     rs2 = LAM((full_instrction >> 20) & 0b11111);
+    op_type = LAM(get_opType(op));
     imm = [&]() {
         int32_t ret = 0;
         switch (get_opType(op)) {
@@ -84,6 +83,30 @@ void CPU::decode() {
 
     shamt = LAM((full_instrction & 0x01F00000U) >> 20);
     variant_flag = LAM(full_instrction & 0x40000000U);
+
+    regs.rs1 = [&]() -> uint8_t {
+        if (op_type != U && op_type != J) {
+            return rs1;
+        } else {
+            return 0;
+        }
+    };
+    regs.rs2 = [&]() -> uint8_t {
+        switch (op_type) {
+            case B:
+            case S:
+            case R:
+                return rs2;
+                break;
+            case U:
+            case J:
+            case I:
+                return 0;
+                break;
+        }
+    };
+    regs.rd = LAM(0);
+    regs.rd_data = LAM(0);
 }
 
 void CPU::step() {

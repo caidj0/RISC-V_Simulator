@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 
 template <typename T>
@@ -44,3 +45,12 @@ class Reg : public Updatable {
 };
 
 #define LAM(expr) [&]() { return (expr); }
+
+// 符号拓展函数
+template <uint32_t bits>
+int32_t sext(uint32_t num) {
+    struct signed_bit {
+        int32_t val : bits;
+    };
+    return signed_bit{static_cast<int32_t>(num)}.val;
+}
