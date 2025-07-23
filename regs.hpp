@@ -20,7 +20,7 @@ class Regs : public Updatable {
         _rs1_data.pull();
         _rs2_data.pull();
 
-        for (int i = 0; i < 31; i++) {
+        for (int i = 0; i < 32; i++) {
             if (i == rd) {
                 regs[i].f = LAM(rd_data);
             } else {

@@ -26,7 +26,8 @@ class ALU : public Updatable {
                 out <= LAM(num_A << (num_B & 0b11111));
                 break;
             case 0b010:  // slt
-                out <= LAM(int32_t(num_A) < int32_t(num_B));
+                out <= LAM(static_cast<int32_t>(num_A) <
+                           static_cast<int32_t>(num_B));
                 break;
             case 0b011:  // sltu
                 out <= LAM(num_A < num_B);
@@ -37,7 +38,8 @@ class ALU : public Updatable {
             case 0b101:
                 if (variant_flag) {  // sra
                     // C++20 起规定为算数右移
-                    out <= LAM(int32_t(num_A) >> (num_B & 0b11111));
+                    out <=
+                        LAM(static_cast<int32_t>(num_A) >> (num_B & 0b11111));
                 } else {  // srl
                     out <= LAM(num_A >> (num_B & 0b11111));
                 }

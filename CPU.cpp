@@ -50,7 +50,7 @@ void CPU::decode() {
     op_rs2 = LAM((full_instrction >> 20) & 0b11111);
     op_type = LAM(get_opType(op));
     imm = [&]() {
-        int32_t ret = 0;
+        uint32_t ret = 0;
         switch (get_opType(op)) {
             case U:
                 ret |= full_instrction & 0xFFFFF000U;
@@ -220,9 +220,13 @@ void CPU::writeBack() {
                     return sext<16>(mem);
                     break;
                 case 0b010:
-                case 0b100:
-                case 0b101:
                     return mem;
+                    break;
+                case 0b100:
+                    return mem & 0x000000FFU;
+                    break;
+                case 0b101:
+                    return mem & 0x0000FFFFU;
                     break;
                 default:
                     assert(false);
@@ -235,7 +239,7 @@ void CPU::writeBack() {
         uint32_t offset = 4;
         switch (op_type) {
             case J:
-                offset = sext<20>(imm);
+                offset = sext<21>(imm);
                 break;
             case I:
                 if (op == 0b1100111) {
@@ -266,8 +270,8 @@ bool CPU::step(uint8_t *ret) {
             break;
         case 1:
             decode();
-            if(full_instrction == 0x0ff00513) {
-                *ret = regs.direct_access(10);
+            if (full_instrction == 0x0ff00513) {
+                *ret = static_cast<uint8_t>(regs.direct_access(10));
                 return true;
             }
             break;
