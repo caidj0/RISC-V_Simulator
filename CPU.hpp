@@ -9,7 +9,7 @@ enum OpType { U, J, I, B, S, R };
 
 class CPU {
     Reg<uint32_t> PC;
-    Memory<> mem;
+    Memory mem;
     Regs regs;
     ALU alu;
 

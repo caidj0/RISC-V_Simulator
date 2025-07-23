@@ -14,6 +14,7 @@ class Wire {
         this->f = f;
         return *this;
     }
+    T value() const { return f(); }
 };
 
 class Updatable {

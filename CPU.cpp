@@ -103,6 +103,7 @@ void CPU::decode() {
                 return 0;
                 break;
         }
+        return 0;
     };
     regs.rd = LAM(0);
     regs.rd_data = LAM(0);
@@ -126,6 +127,7 @@ void CPU::execute() {
                 return regs.rs1_data();
                 break;
         }
+        return 0;
     };
 
     alu.num_B = [&]() -> uint32_t {
@@ -155,6 +157,7 @@ void CPU::execute() {
                 return regs.rs2_data();
                 break;
         }
+        return 0;
     };
 
     alu.op = [&]() -> uint8_t {
@@ -175,19 +178,28 @@ void CPU::execute() {
                 default:
                     return 0b000;
             }
+        } else if (op_type == U || op_type == J || op_type == S ||
+                   op == 0b0000011) {
+            return 0b000;
         } else {
             return subop;
         }
     };
 
-    alu.variant_flag = LAM(
-        variant_flag || (op_type == B && (subop == 0b000 || subop == 0b001)));
+    alu.variant_flag = [&]() -> bool {
+        if (op_type == B) {
+            return subop == 0b000 || subop == 0b001;
+        } else if (op == 0b0110011 || (op == 0b0010011 && subop == 0b101)) {
+            return variant_flag;
+        }
+        return false;
+    };
 }
 
 void CPU::memory() {
     mem.address <= LAM(alu);
-    mem.mode <= LAM(subop);
     if (op_type == S) {
+        mem.write_mode <= LAM(subop);
         mem.write <= LAM(true);
         mem.input <= LAM(regs.rs2_data());
     }
@@ -248,17 +260,16 @@ void CPU::writeBack() {
 }
 
 bool CPU::step(uint8_t *ret) {
-    if (PC == 0x0ff00513) {
-        *ret = regs.direct_access(10);
-        return true;
-    }
-
     switch (stage) {
         case 0:
             fetch();
             break;
         case 1:
             decode();
+            if(full_instrction == 0x0ff00513) {
+                *ret = regs.direct_access(10);
+                return true;
+            }
             break;
         case 2:
             execute();
@@ -278,7 +289,7 @@ bool CPU::step(uint8_t *ret) {
 }
 
 void CPU::pullAndUpdate() {
-    Updatable *const updatables[] = {&PC, &mem, &regs};
+    Updatable *const updatables[] = {&PC, &mem, &regs, &alu};
 
     for (auto &x : updatables) {
         x->pull();

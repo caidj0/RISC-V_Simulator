@@ -1,35 +1,37 @@
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <string>
 
 #include "utils.hpp"
 
-template <uint32_t S = 0x10000>
 class Memory : public Updatable {
     uint32_t out;
-    uint8_t mems[S];
+    std::map<uint32_t, uint8_t> mems;
 
    public:
     Reg<uint32_t> address;
     Reg<bool> write;
     Reg<uint32_t> input;
-    Reg<uint8_t> mode;
+    Reg<uint8_t> write_mode;
 
     operator uint32_t() const { return out; }
     void pull() {
         address.pull();
         write.pull();
         input.pull();
+        write_mode.pull();
     }
     void update() {
         address.update();
         write.update();
         input.update();
+        write_mode.update();
         if (write) {
             mems[address] = input & 0xff;
-            if (mode & 0b011) {
+            if (write_mode & 0b011) {
                 mems[address + 1] = (input >> 8) & 0xff;
-                if (mode == 0b010) {
+                if (write_mode == 0b010) {
                     mems[address + 2] = (input >> 16) & 0xff;
                     mems[address + 3] = (input >> 24) & 0xff;
                 }
@@ -37,13 +39,9 @@ class Memory : public Updatable {
             out = 0;
         } else {
             out = mems[address];
-            if (mode & 0b011) {
-                out |= mems[address + 1] << 8;
-                if (mode & 0b010) {
-                    out |= mems[address + 2] << 16;
-                    out |= mems[address + 3] << 24;
-                }
-            }
+            out |= mems[address + 1] << 8;
+            out |= mems[address + 2] << 16;
+            out |= mems[address + 3] << 24;
         }
     }
 
