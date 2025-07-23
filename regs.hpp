@@ -44,4 +44,6 @@ class Regs : public Updatable {
     }
     uint32_t rs1_data() const { return _rs1_data; }
     uint32_t rs2_data() const { return _rs2_data; }
+
+    uint32_t direct_access(uint8_t reg_index) const { return regs[reg_index]; }
 };

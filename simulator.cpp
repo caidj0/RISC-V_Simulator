@@ -1,17 +1,14 @@
 #include <cstdio>
-#include <iostream>
 
-#include "utils.hpp"
+#include "CPU.hpp"
 
 int main() {
-    int x = 100;
-    const auto w = WIRE(x + x);
-    x = 200;
+    freopen("sample.data", "r", stdin);
 
-    std::cout << w << std::endl;
-
-    x = 1000;
-    std::cout << w << std::endl;
+    CPU cpu;
+    uint8_t ret;
+    while (!cpu.step(&ret));
+    printf("The return value is: %d", ret);
 
     return 0;
 }

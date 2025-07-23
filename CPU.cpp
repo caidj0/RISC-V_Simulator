@@ -157,8 +157,31 @@ void CPU::execute() {
         }
     };
 
-    alu.op = LAM(op_type == B ? 0b000 : subop);
-    alu.variant_flag = LAM(variant_flag || op_type == B);
+    alu.op = [&]() -> uint8_t {
+        if (op_type == B) {
+            switch (subop) {
+                case 0b000:
+                case 0b001:
+                    return 0b000;  // sub
+                    break;
+                case 0b100:
+                case 0b101:
+                    return 0b010;  // slt
+                    break;
+                case 0b110:
+                case 0b111:
+                    return 0b011;  // sltu
+                    break;
+                default:
+                    return 0b000;
+            }
+        } else {
+            return subop;
+        }
+    };
+
+    alu.variant_flag = LAM(
+        variant_flag || (op_type == B && (subop == 0b000 || subop == 0b001)));
 }
 
 void CPU::memory() {
@@ -208,14 +231,28 @@ void CPU::writeBack() {
                 }
                 break;
             case B:
-                bool flag =
-                    ;  // TODO 为了实现比较逻辑，需要新增比较器模块？或者为
-                       // ALU 添加比较模式？
+                if ((subop == 0b000 && alu == 0) ||
+                    (subop == 0b001 && alu != 0) || (subop == 0b100 && alu) ||
+                    (subop == 0b101 && !alu) || (subop == 0b110 && alu) ||
+                    (subop == 0b111 && !alu)) {
+                    offset = sext<13>(imm);
+                }
+                break;
+            case U:
+            case R:
+            case S:
+                break;
         };
+        return PC + offset;
     };
 }
 
-void CPU::step() {
+bool CPU::step(uint8_t *ret) {
+    if (PC == 0x0ff00513) {
+        *ret = regs.direct_access(10);
+        return true;
+    }
+
     switch (stage) {
         case 0:
             fetch();
@@ -237,6 +274,7 @@ void CPU::step() {
     pullAndUpdate();
     cycle_time++;
     stage = (stage + 1) % 5;
+    return false;
 }
 
 void CPU::pullAndUpdate() {
