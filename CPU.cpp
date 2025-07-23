@@ -44,10 +44,10 @@ void CPU::decode() {
     full_instrction = mem;
 
     op = LAM(full_instrction & 0b1111111);
-    alu.op = LAM((full_instrction >> 12) & 0b111);
-    rd = LAM((full_instrction >> 7) & 0b11111);
-    rs1 = LAM((full_instrction >> 15) & 0b11111);
-    rs2 = LAM((full_instrction >> 20) & 0b11111);
+    subop = LAM((full_instrction >> 12) & 0b111);
+    op_rd = LAM((full_instrction >> 7) & 0b11111);
+    op_rs1 = LAM((full_instrction >> 15) & 0b11111);
+    op_rs2 = LAM((full_instrction >> 20) & 0b11111);
     op_type = LAM(get_opType(op));
     imm = [&]() {
         int32_t ret = 0;
@@ -81,11 +81,11 @@ void CPU::decode() {
     };
 
     shamt = LAM((full_instrction & 0x01F00000U) >> 20);
-    alu.variant_flag = LAM(full_instrction & 0x40000000U);
+    variant_flag = LAM(full_instrction & 0x40000000U);
 
     regs.rs1 = [&]() -> uint8_t {
         if (op_type != U && op_type != J) {
-            return rs1;
+            return op_rs1;
         } else {
             return 0;
         }
@@ -95,7 +95,7 @@ void CPU::decode() {
             case B:
             case S:
             case R:
-                return rs2;
+                return op_rs2;
                 break;
             case U:
             case J:
@@ -155,6 +155,63 @@ void CPU::execute() {
                 return regs.rs2_data();
                 break;
         }
+    };
+
+    alu.op = LAM(op_type == B ? 0b000 : subop);
+    alu.variant_flag = LAM(variant_flag || op_type == B);
+}
+
+void CPU::memory() {
+    mem.address <= LAM(alu);
+    mem.mode <= LAM(subop);
+    if (op_type == S) {
+        mem.write <= LAM(true);
+        mem.input <= LAM(regs.rs2_data());
+    }
+}
+
+void CPU::writeBack() {
+    mem.write <= LAM(false);
+    regs.rd = [&]() -> uint8_t {
+        return ((op_type == B) || op_type == S) ? 0 : op_rd;
+    };
+    regs.rd_data = [&]() -> uint32_t {
+        if (op == 0b0000011) {
+            switch (subop) {
+                case 0b000:
+                    return sext<8>(mem);
+                    break;
+                case 0b001:
+                    return sext<16>(mem);
+                    break;
+                case 0b010:
+                case 0b100:
+                case 0b101:
+                    return mem;
+                    break;
+                default:
+                    assert(false);
+            }
+        } else {
+            return alu;
+        }
+    };
+    PC <= [&]() -> uint32_t {
+        uint32_t offset = 4;
+        switch (op_type) {
+            case J:
+                offset = sext<20>(imm);
+                break;
+            case I:
+                if (op == 0b1100111) {
+                    return (regs.rs1_data() + sext<12>(imm)) & 0xFFFFFFFEU;
+                }
+                break;
+            case B:
+                bool flag =
+                    ;  // TODO 为了实现比较逻辑，需要新增比较器模块？或者为
+                       // ALU 添加比较模式？
+        };
     };
 }
 

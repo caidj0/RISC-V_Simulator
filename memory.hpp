@@ -13,6 +13,8 @@ class Memory : public Updatable {
     Reg<uint32_t> address;
     Reg<bool> write;
     Reg<uint32_t> input;
+    Reg<uint8_t> mode;
+
     operator uint32_t() const { return out; }
     void pull() {
         address.pull();
@@ -25,13 +27,23 @@ class Memory : public Updatable {
         input.update();
         if (write) {
             mems[address] = input & 0xff;
-            mems[address + 1] = (input >> 8) & 0xff;
-            mems[address + 2] = (input >> 16) & 0xff;
-            mems[address + 3] = (input >> 24) & 0xff;
+            if (mode & 0b011) {
+                mems[address + 1] = (input >> 8) & 0xff;
+                if (mode == 0b010) {
+                    mems[address + 2] = (input >> 16) & 0xff;
+                    mems[address + 3] = (input >> 24) & 0xff;
+                }
+            }
             out = 0;
         } else {
-            out = mems[address] + (mems[address + 1] << 8) +
-                  (mems[address + 2] << 16) + (mems[address + 3] << 24);
+            out = mems[address];
+            if (mode & 0b011) {
+                out |= mems[address + 1] << 8;
+                if (mode & 0b010) {
+                    out |= mems[address + 2] << 16;
+                    out |= mems[address + 3] << 24;
+                }
+            }
         }
     }
 

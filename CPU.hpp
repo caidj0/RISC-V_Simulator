@@ -18,10 +18,11 @@ class CPU {
 
     uint32_t full_instrction;
     Wire<uint8_t> op;
+    Wire<uint8_t> subop;
     Wire<uint32_t> imm;
-    Wire<uint8_t> rs1;
-    Wire<uint8_t> rs2;
-    Wire<uint8_t> rd;
+    Wire<uint8_t> op_rs1;
+    Wire<uint8_t> op_rs2;
+    Wire<uint8_t> op_rd;
     Wire<uint8_t> shamt;
     Wire<bool> variant_flag;
     Wire<OpType> op_type;
