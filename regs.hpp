@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdint>
 
 #include "utils.hpp"
@@ -47,16 +48,15 @@ class Regs : public Updatable {
 };
 
 class RegisterStats : public Updatable {
-    // 此处使用 uint8_t，允许长度为 256 的 ROB
-    Reg<uint8_t> _reorder[32];
-    Reg<uint8_t> _rs1_reorder;
-    Reg<uint8_t> _rs2_reorder;
+    Reg<size_t> _reorder[32];
+    Reg<size_t> _rs1_reorder;
+    Reg<size_t> _rs2_reorder;
 
    public:
     Wire<uint8_t> rs1;
     Wire<uint8_t> rs2;
     Wire<uint8_t> rd;
-    Wire<uint8_t> reorder;
+    Wire<size_t> reorder;
 
     RegisterStats() {
         _rs1_reorder <= LAM(_reorder[rs1]);
