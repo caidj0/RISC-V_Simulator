@@ -5,3 +5,4 @@ CMakePresets.json
 .cache/
 sample/
 testcases/
+.vscode/
