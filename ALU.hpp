@@ -14,51 +14,52 @@ class ALU : public Updatable {
     Wire<bool> variant_flag;
     operator uint32_t() const { return out; }
 
-    void pull() {
-        switch (op) {
-            case 0b000:
-                if (variant_flag) {  // sub
-                    out <= LAM(num_A - num_B);
-                } else {  // add
-                    out <= LAM(num_A + num_B);
-                }
-                break;
-            case 0b001:  // sll
-                out <= LAM(num_A << (num_B & 0b11111));
-                break;
-            case 0b010:  // slt
-                out <= LAM(static_cast<int32_t>(num_A) <
-                           static_cast<int32_t>(num_B));
-                break;
-            case 0b011:  // sltu
-                out <= LAM(num_A < num_B);
-                break;
-            case 0b100:  // xor
-                out <= LAM(num_A ^ num_B);
-                break;
-            case 0b101:
-                if (variant_flag) {  // sra
-                    // C++20 起规定为算数右移
-                    out <=
-                        LAM(static_cast<int32_t>(num_A) >> (num_B & 0b11111));
-                } else {  // srl
-                    out <= LAM(num_A >> (num_B & 0b11111));
-                }
-                break;
-            case 0b110:  // or
-                out <= LAM(num_A | num_B);
-                break;
-            case 0b111:
-                out <= LAM(num_A & num_B);
-                break;
-            default:
-                throw std::runtime_error(std::format(
-                    "Unknown ALU operation code 0b{:03b}", uint8_t(op)));
-                break;
-        }
-
-        out.pull();
+    ALU() {
+        out <= [&]() -> uint32_t {
+            switch (op) {
+                case 0b000:
+                    if (variant_flag) {  // sub
+                        return num_A - num_B;
+                    } else {  // add
+                        return num_A + num_B;
+                    }
+                    break;
+                case 0b001:  // sll
+                    return num_A << (num_B & 0b11111);
+                    break;
+                case 0b010:  // slt
+                    return static_cast<int32_t>(num_A) <
+                           static_cast<int32_t>(num_B);
+                    break;
+                case 0b011:  // sltu
+                    return num_A < num_B;
+                    break;
+                case 0b100:  // xor
+                    return num_A ^ num_B;
+                    break;
+                case 0b101:
+                    if (variant_flag) {  // sra
+                        // C++20 起规定为算数右移
+                        return static_cast<int32_t>(num_A) >> (num_B & 0b11111);
+                    } else {  // srl
+                        return num_A >> (num_B & 0b11111);
+                    }
+                    break;
+                case 0b110:  // or
+                    return num_A | num_B;
+                    break;
+                case 0b111:
+                    return num_A & num_B;
+                    break;
+                default:
+                    throw std::runtime_error(std::format(
+                        "Unknown ALU operation code 0b{:03b}", uint8_t(op)));
+                    break;
+            }
+        };
     }
+
+    void pull() { out.pull(); }
 
     void update() { out.update(); }
 };
