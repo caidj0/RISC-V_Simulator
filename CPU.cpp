@@ -1,7 +1,8 @@
 #include "CPU.hpp"
 
-#include <cassert>
 #include <cstdint>
+#include <format>
+#include <stdexcept>
 
 #include "utils.hpp"
 
@@ -25,7 +26,7 @@ OpType get_opType(uint8_t op) {
         case 0b0110011:
             return OpType::R;
         default:
-            assert(false);
+            throw std::runtime_error(std::format("Unknown operation code 0b{:07b}", op));
     }
 }
 
@@ -41,38 +42,38 @@ void CPU::fetch() {
 }
 
 void CPU::decode() {
-    full_instrction = mem;
+    full_instruction = mem;
 
-    op = LAM(full_instrction & 0b1111111);
-    subop = LAM((full_instrction >> 12) & 0b111);
-    op_rd = LAM((full_instrction >> 7) & 0b11111);
-    op_rs1 = LAM((full_instrction >> 15) & 0b11111);
-    op_rs2 = LAM((full_instrction >> 20) & 0b11111);
+    op = LAM(full_instruction & 0b1111111);
+    subop = LAM((full_instruction >> 12) & 0b111);
+    op_rd = LAM((full_instruction >> 7) & 0b11111);
+    op_rs1 = LAM((full_instruction >> 15) & 0b11111);
+    op_rs2 = LAM((full_instruction >> 20) & 0b11111);
     op_type = LAM(get_opType(op));
     imm = [&]() {
         uint32_t ret = 0;
         switch (get_opType(op)) {
             case U:
-                ret |= full_instrction & 0xFFFFF000U;
+                ret |= full_instruction & 0xFFFFF000U;
                 break;
             case J:
-                ret |= full_instrction & 0x000FF000U;
-                ret |= (full_instrction & 0x00100000U) >> 9;
-                ret |= (full_instrction & 0x7FE00000U) >> 20;
-                ret |= (full_instrction & 0x80000000U) >> 11;
+                ret |= full_instruction & 0x000FF000U;
+                ret |= (full_instruction & 0x00100000U) >> 9;
+                ret |= (full_instruction & 0x7FE00000U) >> 20;
+                ret |= (full_instruction & 0x80000000U) >> 11;
                 break;
             case B:
-                ret |= (full_instrction & 0x00000080U) << 4;
-                ret |= (full_instrction & 0x00000F00U) >> 7;
-                ret |= (full_instrction & 0x7E000000U) >> 20;
-                ret |= (full_instrction & 0x80000000U) >> 19;
+                ret |= (full_instruction & 0x00000080U) << 4;
+                ret |= (full_instruction & 0x00000F00U) >> 7;
+                ret |= (full_instruction & 0x7E000000U) >> 20;
+                ret |= (full_instruction & 0x80000000U) >> 19;
                 break;
             case I:
-                ret |= (full_instrction & 0xFFF00000U) >> 20;
+                ret |= (full_instruction & 0xFFF00000U) >> 20;
                 break;
             case S:
-                ret |= (full_instrction & 0x00000F80U) >> 7;
-                ret |= (full_instrction & 0xFE000000U) >> 20;
+                ret |= (full_instruction & 0x00000F80U) >> 7;
+                ret |= (full_instruction & 0xFE000000U) >> 20;
                 break;
             case R:
                 break;
@@ -80,8 +81,8 @@ void CPU::decode() {
         return ret;
     };
 
-    shamt = LAM((full_instrction & 0x01F00000U) >> 20);
-    variant_flag = LAM(full_instrction & 0x40000000U);
+    shamt = LAM((full_instruction & 0x01F00000U) >> 20);
+    variant_flag = LAM(full_instruction & 0x40000000U);
 
     regs.rs1 = [&]() -> uint8_t {
         if (op_type != U && op_type != J) {
@@ -229,11 +230,11 @@ void CPU::writeBack() {
                     return mem & 0x0000FFFFU;
                     break;
                 default:
-                    assert(false);
+                    throw std::runtime_error(std::format("Unknown memory subcode 0b{:03b}",
+                                      uint8_t(subop)));
             }
-        } else {
-            return alu;
         }
+        return alu;
     };
     PC <= [&]() -> uint32_t {
         uint32_t offset = 4;
@@ -270,7 +271,7 @@ bool CPU::step(uint8_t *ret) {
             break;
         case 1:
             decode();
-            if (full_instrction == 0x0ff00513) {
+            if (full_instruction == 0x0ff00513) {
                 *ret = static_cast<uint8_t>(regs.direct_access(10));
                 return true;
             }

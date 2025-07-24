@@ -30,7 +30,7 @@ class Reg : public Updatable {
 
    public:
     std::function<T(void)> f;
-    Reg(std::function<T(void)> f) : f(f), value(), new_value() {}
+    Reg(std::function<T(void)> f) : value(), new_value(), f(f) {}
     Reg() : Reg([]() { return T(); }) {}
     operator T() const { return value; }
     void pull() { new_value = f(); }

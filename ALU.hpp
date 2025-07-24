@@ -1,5 +1,6 @@
-#include <cassert>
 #include <cstdint>
+#include <format>
+#include <stdexcept>
 
 #include "utils.hpp"
 
@@ -51,7 +52,8 @@ class ALU : public Updatable {
                 out <= LAM(num_A & num_B);
                 break;
             default:
-                assert(false);
+                throw std::runtime_error(std::format(
+                    "Unknown ALU operation code 0b{:03b}", uint8_t(op)));
                 break;
         }
 

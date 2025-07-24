@@ -16,7 +16,7 @@ class CPU {
     uint64_t cycle_time;
     uint8_t stage;  // 取指、译码、执行、访存、写回
 
-    uint32_t full_instrction;
+    uint32_t full_instruction;
     Wire<uint8_t> op;
     Wire<uint8_t> subop;
     Wire<uint32_t> imm;
