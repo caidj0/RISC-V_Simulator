@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <format>
 #include <functional>
+#include <stdexcept>
 
 template <typename T>
 class Wire {
@@ -55,3 +57,14 @@ int32_t sext(uint32_t num) {
     };
     return signed_bit{static_cast<int32_t>(num)}.val;
 }
+
+enum OpType { U, J, I, B, S, R };
+
+OpType get_opType(uint8_t op);
+uint8_t get_op(uint32_t full_instruction);
+uint8_t get_subop(uint32_t full_instruction);
+uint8_t get_rs1(uint32_t full_instruction);
+uint8_t get_rs2(uint32_t full_instruction);
+uint32_t get_imm(uint32_t full_instruction);
+uint8_t get_shamt(uint32_t full_instruction);
+bool get_variant_flag(uint32_t full_instruction);
