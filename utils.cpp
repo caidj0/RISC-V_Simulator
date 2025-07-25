@@ -60,19 +60,23 @@ uint32_t get_imm(uint32_t full_instruction) {
             ret |= (full_instruction & 0x00100000U) >> 9;
             ret |= (full_instruction & 0x7FE00000U) >> 20;
             ret |= (full_instruction & 0x80000000U) >> 11;
+            ret = sext<21>(ret);
             break;
         case B:
             ret |= (full_instruction & 0x00000080U) << 4;
             ret |= (full_instruction & 0x00000F00U) >> 7;
             ret |= (full_instruction & 0x7E000000U) >> 20;
             ret |= (full_instruction & 0x80000000U) >> 19;
+            ret = sext<13>(ret);
             break;
         case I:
             ret |= (full_instruction & 0xFFF00000U) >> 20;
+            ret = sext<12>(ret);
             break;
         case S:
             ret |= (full_instruction & 0x00000F80U) >> 7;
             ret |= (full_instruction & 0xFE000000U) >> 20;
+            ret = sext<12>(ret);
             break;
         case R:
             break;

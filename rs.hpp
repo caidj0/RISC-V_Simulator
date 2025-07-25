@@ -1,0 +1,95 @@
+#include <cstdint>
+#include <stdexcept>
+#include <type_traits>
+
+#include "utils.hpp"
+
+struct RSBus {
+    size_t record_index;
+    size_t qj;
+    size_t qk;
+
+    // 对于 ALURS，vj vk 存储两个操作数
+    // 对于 MemRS，vj 存储寄存器读取的地址，vk 存储要存的数据，imm 存储地址偏移
+    uint32_t vj;
+    uint32_t vk;
+    uint8_t subop;
+    bool variant_flag;
+    uint32_t imm;
+};
+
+struct ALUBus {
+    size_t record_index;
+    uint8_t subop;
+    bool variant_flag;
+    uint32_t num_A;
+    uint32_t num_B;
+};
+
+struct MemBus {
+    size_t record_index;
+    uint8_t write_mode;
+    uint32_t address;
+    uint32_t input;
+};
+
+template <typename SpecBus>
+class ReservationStation : public Updatable {
+    Reg<RSBus> ins;
+
+    bool is_ready() const { return RSBus(ins).qj == 0 && RSBus(ins).qk == 0; }
+
+   public:
+    Wire<size_t> cdb_index;
+    Wire<uint32_t> cdb_data;
+    Wire<RSBus> new_instruction;
+
+    ReservationStation() {
+        ins <= [&]() -> RSBus {
+            RSBus new_ins = new_instruction;
+            RSBus old_ins = ins;
+            if (new_ins.record_index != 0) {
+                if (old_ins.record_index != 0) {
+                    throw std::runtime_error(
+                        "The requested reservation station is busy!");
+                }
+                return new_ins;
+            }
+
+            if (cdb_index == old_ins.qj) {
+                old_ins.vj = cdb_data;
+                old_ins.qj = 0;
+            }
+
+            if (cdb_index == old_ins.qk) {
+                old_ins.vk = cdb_data;
+                old_ins.qk = 0;
+            }
+
+            if (cdb_index == old_ins.record_index) {
+                old_ins.record_index = 0;
+            }
+
+            return old_ins;
+        };
+    }
+
+    bool is_busy() const { return RSBus(ins).record_index != 0; }
+
+    SpecBus execute() const {
+        if (is_busy() && is_ready()) {
+            RSBus rsbus = ins;
+
+            if constexpr (std::is_same<SpecBus, ALUBus>()) {
+                return ALUBus{rsbus.record_index, rsbus.subop,
+                              rsbus.variant_flag, rsbus.vj, rsbus.vk};
+            } else if constexpr (std::is_same<SpecBus, MemBus>()) {
+                return MemBus{rsbus.record_index, rsbus.subop,
+                              rsbus.vj + rsbus.imm, rsbus.vk};
+            } else {
+                static_assert(false, "Not supported type!");
+            }
+        }
+        return SpecBus();
+    }
+};

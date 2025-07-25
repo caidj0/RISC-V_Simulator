@@ -96,7 +96,7 @@ class ReorderBuffer : public Updatable {
         };
 
         auto need_update = [&](size_t index) {
-            return add_instruction && tail == index;
+            return !fresh() && add_instruction && tail == index;
         };
 
         // 更新每个 item
@@ -167,13 +167,12 @@ class ReorderBuffer : public Updatable {
             // jalr 指令和 b 指令
             if (items[head].is_jalr()) {
                 return std::make_tuple(true, regs[items[head].rs1()],
-                                       sext<21>(items.imm()));
+                                       items.imm());
             }
 
             if (items[head].is_mispredicted()) {
-                return std::make_tuple(
-                    true, items[head].PC,
-                    items[head].branched ? 4 : sext<13>(items.imm()));
+                return std::make_tuple(true, items[head].PC,
+                                       items[head].branched ? 4 : items.imm());
             }
         }
 
