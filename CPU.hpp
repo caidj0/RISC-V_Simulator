@@ -1,17 +1,18 @@
 #include <cstdint>
 
+#include "ALU.hpp"
+#include "ROB.hpp"
+#include "bus.hpp"
 #include "memory.hpp"
 #include "regs.hpp"
 #include "utils.hpp"
-#include "ALU.hpp"
-
-enum OpType { U, J, I, B, S, R };
 
 class CPU {
     Reg<uint32_t> PC;
-    Memory mem;
     Regs regs;
+    Memory<2> mem;
     ALU alu;
+    ReorderBuffer<> rob;
 
     uint64_t cycle_time;
     uint8_t stage;  // 取指、译码、执行、访存、写回
@@ -33,6 +34,8 @@ class CPU {
     void memory();
     void writeBack();
     void pullAndUpdate();
+
+    CommonDataBus CDBSelect();
 
    public:
     CPU();

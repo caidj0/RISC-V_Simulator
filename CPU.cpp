@@ -4,31 +4,10 @@
 #include <format>
 #include <stdexcept>
 
+#include "bus.hpp"
 #include "utils.hpp"
 
 CPU::CPU() : PC(), mem(), regs(), cycle_time(0), stage(0) {}
-
-OpType get_opType(uint8_t op) {
-    switch (op) {
-        case 0b0110111:
-        case 0b0010111:
-            return OpType::U;
-        case 0b1101111:
-            return OpType::J;
-        case 0b1100111:
-        case 0b0000011:
-        case 0b0010011:
-            return OpType::I;
-        case 0b1100011:
-            return OpType::B;
-        case 0b0100011:
-            return OpType::S;
-        case 0b0110011:
-            return OpType::R;
-        default:
-            throw std::runtime_error(std::format("Unknown operation code 0b{:07b}", op));
-    }
-}
 
 void CPU::fetch() {
     mem.address <= LAM(PC);
@@ -230,8 +209,8 @@ void CPU::writeBack() {
                     return mem & 0x0000FFFFU;
                     break;
                 default:
-                    throw std::runtime_error(std::format("Unknown memory subcode 0b{:03b}",
-                                      uint8_t(subop)));
+                    throw std::runtime_error(std::format(
+                        "Unknown memory subcode 0b{:03b}", uint8_t(subop)));
             }
         }
         return alu;
@@ -294,7 +273,7 @@ bool CPU::step(uint8_t *ret) {
 }
 
 void CPU::pullAndUpdate() {
-    Updatable *const updatables[] = {&PC, &mem, &regs, &alu};
+    Updatable *const updatables[] = {&PC, &mem, &regs, &alu, &rob};
 
     for (auto &x : updatables) {
         x->pull();
@@ -303,4 +282,20 @@ void CPU::pullAndUpdate() {
     for (auto &x : updatables) {
         x->update();
     }
+}
+
+CommonDataBus CPU::CDBSelect() {
+    const CDBSource *const sources[] = {&mem, &alu};
+
+    CommonDataBus ret;
+    for (const auto &x : sources) {
+        auto temp = x->CDBOut();
+
+        // 暂时优先选择编号小的
+        if (ret.index == 0 || temp.index < ret.index) {
+            ret = temp;
+        }
+    }
+
+    return ret;
 }
