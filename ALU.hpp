@@ -2,64 +2,95 @@
 #include <format>
 #include <stdexcept>
 
+#include "bus.hpp"
 #include "utils.hpp"
 
-class ALU : public Updatable {
+class ALU : public Updatable, public CDBSource {
+    Reg<size_t> record_index;
     Reg<uint32_t> out;
 
    public:
-    Wire<uint32_t> num_A;
-    Wire<uint32_t> num_B;
-    Wire<uint8_t> op;  // 只使用低三位
-    Wire<bool> variant_flag;
+    Wire<ALUBus> bus;
+    Wire<size_t> cdb_index;
     operator uint32_t() const { return out; }
 
     ALU() {
+        record_index <= [&]() -> size_t {
+            if (cdb_index == record_index) {
+                return 0;
+            }
+
+            ALUBus ab = bus;
+            if (ab.record_index != 0) {
+                if (record_index != 0) {
+                    throw std::runtime_error(
+                        "New ALU operation requested while the last operation "
+                        "not "
+                        "finished yet!");
+                }
+                return ab.record_index;
+            }
+
+            return record_index;
+        };
+
         out <= [&]() -> uint32_t {
-            switch (op) {
+            ALUBus ab = bus;
+            if (ab.record_index == 0) {
+                return 0;
+            }
+            switch (ab.subop) {
                 case 0b000:
-                    if (variant_flag) {  // sub
-                        return num_A - num_B;
+                    if (ab.variant_flag) {  // sub
+                        return ab.num_A - ab.num_B;
                     } else {  // add
-                        return num_A + num_B;
+                        return ab.num_A + ab.num_B;
                     }
                     break;
                 case 0b001:  // sll
-                    return num_A << (num_B & 0b11111);
+                    return ab.num_A << (ab.num_B & 0b11111);
                     break;
                 case 0b010:  // slt
-                    return static_cast<int32_t>(num_A) <
-                           static_cast<int32_t>(num_B);
+                    return static_cast<int32_t>(ab.num_A) <
+                           static_cast<int32_t>(ab.num_B);
                     break;
                 case 0b011:  // sltu
-                    return num_A < num_B;
+                    return ab.num_A < ab.num_B;
                     break;
                 case 0b100:  // xor
-                    return num_A ^ num_B;
+                    return ab.num_A ^ ab.num_B;
                     break;
                 case 0b101:
-                    if (variant_flag) {  // sra
+                    if (ab.variant_flag) {  // sra
                         // C++20 起规定为算数右移
-                        return static_cast<int32_t>(num_A) >> (num_B & 0b11111);
+                        return static_cast<int32_t>(ab.num_A) >>
+                               (ab.num_B & 0b11111);
                     } else {  // srl
-                        return num_A >> (num_B & 0b11111);
+                        return ab.num_A >> (ab.num_B & 0b11111);
                     }
                     break;
                 case 0b110:  // or
-                    return num_A | num_B;
+                    return ab.num_A | ab.num_B;
                     break;
                 case 0b111:
-                    return num_A & num_B;
+                    return ab.num_A & ab.num_B;
                     break;
                 default:
-                    throw std::runtime_error(std::format(
-                        "Unknown ALU operation code 0b{:03b}", uint8_t(op)));
+                    throw std::runtime_error(
+                        std::format("Unknown ALU operation code 0b{:03b}",
+                                    uint8_t(ab.subop)));
                     break;
             }
         };
     }
 
-    void pull() { out.pull(); }
+    void pull() {
+        record_index.pull();
+        out.pull();
+    }
 
-    void update() { out.update(); }
+    void update() {
+        record_index.pull();
+        out.update();
+    }
 };

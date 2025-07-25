@@ -200,6 +200,7 @@ class ReorderBuffer : public Updatable {
             item.ready.pull();
             item.rd.pull();
             item.value.pull();
+            item.branched.pull();
         }
     }
 
@@ -211,6 +212,7 @@ class ReorderBuffer : public Updatable {
             item.ready.update();
             item.rd.update();
             item.value.update();
+            item.branched.update();
         }
     }
 };

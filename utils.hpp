@@ -69,3 +69,9 @@ uint8_t get_rd(uint32_t full_instruction);
 uint32_t get_imm(uint32_t full_instruction);
 uint8_t get_shamt(uint32_t full_instruction);
 bool get_variant_flag(uint32_t full_instruction);
+
+class CDBSource {
+   public:
+    virtual size_t out_index() const = 0;
+    virtual operator uint32_t() const = 0;
+};
