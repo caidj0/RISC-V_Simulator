@@ -1,51 +1,74 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 
+#include "bus.hpp"
 #include "utils.hpp"
 
-class Memory : public Updatable {
-    uint32_t out;
+template <size_t DELAY>
+class Memory : public Updatable, public CDBSource {
     std::map<uint32_t, uint8_t> mems;
 
-   public:
-    Reg<uint32_t> address;
-    Reg<bool> write;
-    Reg<uint32_t> input;
-    Reg<uint8_t> write_mode;
+    Reg<size_t> record_index;
+    Reg<size_t> remain_delay;
+    Reg<uint32_t> instruction;
+    Reg<uint32_t> out;
 
-    operator uint32_t() const { return out; }
-    void pull() {
-        address.pull();
-        write.pull();
-        input.pull();
-        write_mode.pull();
+    Reg<MemBus> write_bus_reg;
+
+    uint32_t get(uint32_t address) {
+        uint32_t ret = 0;
+        ret = mems[address];
+        ret |= mems[address + 1] << 8;
+        ret |= mems[address + 2] << 16;
+        ret |= mems[address + 3] << 24;
+        return ret;
     }
-    void update() {
-        address.update();
-        write.update();
-        input.update();
-        write_mode.update();
-        if (write) {
-            mems[address] = input & 0xff;
-            if (write_mode & 0b011) {
-                mems[address + 1] = (input >> 8) & 0xff;
-                if (write_mode == 0b010) {
-                    mems[address + 2] = (input >> 16) & 0xff;
-                    mems[address + 3] = (input >> 24) & 0xff;
-                }
-            }
-            out = 0;
-        } else {
-            out = mems[address];
-            out |= mems[address + 1] << 8;
-            out |= mems[address + 2] << 16;
-            out |= mems[address + 3] << 24;
-        }
-    }
+
+   public:
+    Wire<size_t> cdb_index;
+    Wire<MemBus> read_bus;
+    Wire<MemBus> write_bus;
+    Wire<uint32_t> PC;
 
     Memory() {
+        instruction <= LAM(get(PC));
+        write_bus_reg <= LAM(write_bus);
+        remain_delay <= [&]() -> size_t {
+            MemBus rb = read_bus;
+            if (rb.record_index != 0) {
+                return DELAY;
+            }
+            return remain_delay > 0 ? remain_delay - 1 : 0;
+        };
+        record_index <= [&]() -> size_t {
+            if (cdb_index == record_index) {
+                return 0;
+            }
+
+            MemBus rb = read_bus;
+            if (rb.record_index != 0) {
+                if (record_index != 0) {
+                    throw std::runtime_error(
+                        "New mem operation requested while the last operation "
+                        "not "
+                        "finished yet!");
+                }
+                return rb.record_index;
+            }
+
+            return record_index;
+        };
+        out <= [&]() {
+            MemBus rb = read_bus;
+            if (rb.record_index != 0) {
+                return get(rb.address);
+            }
+            return out;
+        };
+
         uint32_t address = 0;
         std::string buffer;
         while (!std::cin.eof()) {
@@ -58,6 +81,40 @@ class Memory : public Updatable {
                 uint8_t t = std::stoul(buffer, nullptr, 16);
                 mems[address] = t;
                 address++;
+            }
+        }
+    }
+
+    uint32_t get_instruction() const { return instruction; }
+
+    operator uint32_t() const { return remain_delay == 0 ? out : 0; }
+
+    size_t out_index() const { return remain_delay == 0 ? record_index : 0; }
+
+    void pull() {
+        record_index.pull();
+        remain_delay.pull();
+        instruction.pull();
+        out.pull();
+        write_bus_reg.pull();
+    }
+
+    void update() {
+        record_index.update();
+        remain_delay.update();
+        instruction.update();
+        out.update();
+        write_bus_reg.update();
+
+        MemBus wb = write_bus_reg;
+        if (wb.record_index != 0) {
+            mems[wb.address] = wb.input & 0xff;
+            if (wb.write_mode & 0b011) {
+                mems[wb.address + 1] = (wb.input >> 8) & 0xff;
+                if (wb.write_mode == 0b010) {
+                    mems[wb.address + 2] = (wb.input >> 16) & 0xff;
+                    mems[wb.address + 3] = (wb.input >> 24) & 0xff;
+                }
             }
         }
     }
