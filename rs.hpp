@@ -1,13 +1,18 @@
+#pragma once
+
 #include <cstdint>
 #include <stdexcept>
 #include <type_traits>
 
+#include "ROB.hpp"
 #include "bus.hpp"
 #include "utils.hpp"
 
 template <typename SpecBus>
 class ReservationStation : public Updatable {
     Reg<RSBus> ins;
+
+    const ReorderBuffer<>& rob;
 
     bool is_ready() const { return RSBus(ins).qj == 0 && RSBus(ins).qk == 0; }
 
@@ -16,7 +21,7 @@ class ReservationStation : public Updatable {
     Wire<uint32_t> cdb_data;
     Wire<RSBus> new_instruction;
 
-    ReservationStation() {
+    ReservationStation(const ReorderBuffer<>& rob) : rob(rob) {
         ins <= [&]() -> RSBus {
             RSBus new_ins = new_instruction;
             RSBus old_ins = ins;
@@ -56,8 +61,11 @@ class ReservationStation : public Updatable {
                 return ALUBus{rsbus.record_index, rsbus.subop,
                               rsbus.variant_flag, rsbus.vj, rsbus.vk};
             } else if constexpr (std::is_same<SpecBus, MemBus>()) {
-                return MemBus{rsbus.record_index, rsbus.subop,
-                              rsbus.vj + rsbus.imm, rsbus.vk};
+                uint32_t address = rsbus.vj + rsbus.imm;
+                if (rob.canLoad(rsbus.record_index, address)) {
+                    return MemBus{rsbus.record_index, rsbus.subop, address,
+                                  rsbus.vk};
+                }
             } else {
                 static_assert(false, "Not supported type!");
             }

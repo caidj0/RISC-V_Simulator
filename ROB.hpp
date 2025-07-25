@@ -162,6 +162,36 @@ class ReorderBuffer : public Updatable {
         return false;
     }
 
+    bool canLoad(size_t query_index, uint32_t load_address) const {
+        auto overlap = [](uint32_t address1, uint32_t address2) {
+            if (address1 < address2) {
+                return address2 - address1 < 4;
+            } else {
+                return address1 - address2 < 4;
+            }
+        };
+
+        for (size_t i = 1; i <= length; i++) {
+            // 排除不在队列中的指令
+            if (head < query_index) {
+                if (i < head || i >= query_index) {
+                    continue;
+                }
+            } else {
+                if (i < head && i >= query_index) {
+                    continue;
+                }
+            }
+
+            if (items[i].is_store()) {
+                if (!items[i].ready || overlap(load_address, items[i].value)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     std::tuple<bool, uint32_t, uint32_t> PCRelocate() const {
         if (commit()) {
             // jalr 指令和 b 指令
