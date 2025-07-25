@@ -32,11 +32,16 @@ class Memory : public Updatable, public CDBSource {
     Wire<MemBus> read_bus;
     Wire<MemBus> write_bus;
     Wire<uint32_t> PC;
+    Wire<bool> clear;
 
     Memory() {
         instruction <= LAM(get(PC));
         write_bus_reg <= LAM(write_bus);
         remain_delay <= [&]() -> size_t {
+            if (clear) {
+                return 0;
+            }
+
             MemBus rb = read_bus;
             if (rb.record_index != 0) {
                 return DELAY;
@@ -44,6 +49,10 @@ class Memory : public Updatable, public CDBSource {
             return remain_delay > 0 ? remain_delay - 1 : 0;
         };
         record_index <= [&]() -> size_t {
+            if (clear) {
+                return 0;
+            }
+
             if (cdb_index == record_index) {
                 return 0;
             }
@@ -62,6 +71,10 @@ class Memory : public Updatable, public CDBSource {
             return record_index;
         };
         out <= [&]() {
+            if (clear) {
+                return 0;
+            }
+
             MemBus rb = read_bus;
             if (rb.record_index != 0) {
                 return get(rb.address);

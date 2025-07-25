@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdint>
 
@@ -28,4 +30,10 @@ struct MemBus {
     uint8_t write_mode;
     uint32_t address;
     uint32_t input;
+};
+
+struct PCBus {
+    bool flag;
+    uint32_t address;
+    uint32_t offset;
 };

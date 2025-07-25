@@ -5,8 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
-#include <tuple>
 
+#include "bus.hpp"
 #include "regs.hpp"
 #include "utils.hpp"
 
@@ -69,7 +69,7 @@ class ReorderBuffer : public Updatable {
         head = 1;
         tail = 1;
         head <= [&]() {
-            if (fresh()) {
+            if (clear()) {
                 return 1;
             }
 
@@ -80,7 +80,7 @@ class ReorderBuffer : public Updatable {
             return head;
         };
         tail <= [&]() -> size_t {
-            if (fresh()) {
+            if (clear()) {
                 return 1;
             }
 
@@ -96,7 +96,7 @@ class ReorderBuffer : public Updatable {
         };
 
         auto need_update = [&](size_t index) {
-            return !fresh() && add_instruction && tail == index;
+            return !clear() && add_instruction && tail == index;
         };
 
         // 更新每个 item
@@ -155,7 +155,7 @@ class ReorderBuffer : public Updatable {
         return true;
     }
 
-    bool fresh() const {
+    bool clear() const {
         if (commit()) {
             return items[head].is_jalr() || items[head].is_mispredicted();
         }
@@ -192,33 +192,30 @@ class ReorderBuffer : public Updatable {
         return true;
     }
 
-    std::tuple<bool, uint32_t, uint32_t> PCRelocate() const {
+    PCBus PCRelocate() const {
         if (commit()) {
             // jalr 指令和 b 指令
             if (items[head].is_jalr()) {
-                return std::make_tuple(true, regs[items[head].rs1()],
-                                       items.imm());
+                return PCBus{true, regs[items[head].rs1()], items.imm()};
             }
 
             if (items[head].is_mispredicted()) {
-                return std::make_tuple(true, items[head].PC,
-                                       items[head].branched ? 4 : items.imm());
+                return PCBus{true, items[head].PC,
+                             items[head].branched ? 4 : items.imm()};
             }
         }
 
-        return std::make_tuple(false, 0, 0);
+        return PCBus();
     }
 
-    // write_mode, address, input
-    std::tuple<bool, uint8_t, uint32_t, uint32_t> store() const {
+    MemBus store() const {
         if (commit()) {
             if (items[head].is_store()) {
-                return std::make_tuple(true, items[head].subop(),
-                                       items[head].value,
-                                       regs[items[head].rs2()]);
+                return MemBus{head, items[head].subop(), items[head].value,
+                              regs[items[head].rs2()]};
             }
         }
-        return std::make_tuple(false, 0, 0, 0);
+        return MemBus();
     }
 
     void pull() {

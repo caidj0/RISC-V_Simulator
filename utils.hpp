@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <format>
 #include <functional>
-#include <stdexcept>
 
 template <typename T>
 class Wire {

@@ -20,9 +20,14 @@ class ReservationStation : public Updatable {
     Wire<size_t> cdb_index;
     Wire<uint32_t> cdb_data;
     Wire<RSBus> new_instruction;
+    Wire<bool> clear;
 
     ReservationStation(const ReorderBuffer<>& rob) : rob(rob) {
         ins <= [&]() -> RSBus {
+            if (clear) {
+                return RSBus();
+            }
+
             RSBus new_ins = new_instruction;
             RSBus old_ins = ins;
             if (new_ins.record_index != 0) {
@@ -54,7 +59,7 @@ class ReservationStation : public Updatable {
     bool is_busy() const { return RSBus(ins).record_index != 0; }
 
     SpecBus execute() const {
-        if (is_busy() && is_ready()) {
+        if (!clear && is_busy() && is_ready()) {
             RSBus rsbus = ins;
 
             if constexpr (std::is_same<SpecBus, ALUBus>()) {
