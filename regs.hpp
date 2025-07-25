@@ -41,12 +41,15 @@ class RegisterStats : public Updatable {
    public:
     Wire<uint8_t> rd;
     Wire<size_t> reorder;
+    Wire<bool> clear;
 
     RegisterStats() {
         _reorder[0] <= LAM(0);
         for (int i = 1; i < 32; i++) {
-            _reorder[i] <=
-                [&, i]() -> uint8_t { return rd == i ? reorder : _reorder[i]; };
+            _reorder[i] <= [&, i]() -> uint8_t {
+                if (clear) return 0;
+                return rd == i ? reorder : _reorder[i];
+            };
         }
     }
 

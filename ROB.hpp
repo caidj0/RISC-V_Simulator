@@ -56,8 +56,7 @@ class ReorderBuffer : public Updatable {
     size_t index_inc(size_t index) { return index == length ? 1 : index + 1; }
 
    public:
-    Wire<size_t> cdb_index;
-    Wire<uint32_t> cdb_data;
+    Wire<CommonDataBus> cdb;
     Wire<bool> add_instruction;
     Wire<bool> branched;
     Wire<uint32_t> full_instruction;
@@ -112,7 +111,7 @@ class ReorderBuffer : public Updatable {
                     return false;
                 }
 
-                if (cdb_index == i) {
+                if (cdb.value().index == i) {
                     return true;
                 }
 
@@ -131,8 +130,9 @@ class ReorderBuffer : public Updatable {
                 return items[i].branched;
             };
             items[i].value <= [&, i]() {
-                if (cdb_index == i) {
-                    return cdb_data;
+                CommonDataBus local_cdb = cdb;
+                if (local_cdb.index == i) {
+                    return local_cdb.data;
                 }
                 return items[i].value;
             };

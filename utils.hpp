@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <functional>
 
+#include "bus.hpp"
+
 template <typename T>
 class Wire {
    public:
@@ -70,6 +72,5 @@ bool get_variant_flag(uint32_t full_instruction);
 
 class CDBSource {
    public:
-    virtual size_t out_index() const = 0;
-    virtual operator uint32_t() const = 0;
+    virtual CommonDataBus CDBOut() const = 0;
 };

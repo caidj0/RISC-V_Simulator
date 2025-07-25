@@ -28,7 +28,7 @@ class Memory : public Updatable, public CDBSource {
     }
 
    public:
-    Wire<size_t> cdb_index;
+    Wire<CommonDataBus> cdb;
     Wire<MemBus> read_bus;
     Wire<MemBus> write_bus;
     Wire<uint32_t> PC;
@@ -53,7 +53,7 @@ class Memory : public Updatable, public CDBSource {
                 return 0;
             }
 
-            if (cdb_index == record_index) {
+            if (cdb.value().index == record_index) {
                 return 0;
             }
 
@@ -100,9 +100,10 @@ class Memory : public Updatable, public CDBSource {
 
     uint32_t get_instruction() const { return instruction; }
 
-    operator uint32_t() const { return remain_delay == 0 ? out : 0; }
-
-    size_t out_index() const { return remain_delay == 0 ? record_index : 0; }
+    CommonDataBus CDBOut() const {
+        return remain_delay == 0 ? CommonDataBus{record_index, out}
+                                 : CommonDataBus();
+    }
 
     void pull() {
         record_index.pull();

@@ -17,8 +17,7 @@ class ReservationStation : public Updatable {
     bool is_ready() const { return RSBus(ins).qj == 0 && RSBus(ins).qk == 0; }
 
    public:
-    Wire<size_t> cdb_index;
-    Wire<uint32_t> cdb_data;
+    Wire<CommonDataBus> cdb;
     Wire<RSBus> new_instruction;
     Wire<bool> clear;
 
@@ -38,17 +37,19 @@ class ReservationStation : public Updatable {
                 return new_ins;
             }
 
-            if (cdb_index == old_ins.qj) {
-                old_ins.vj = cdb_data;
+            CommonDataBus local_cdb = cdb;
+
+            if (local_cdb.index == old_ins.qj) {
+                old_ins.vj = local_cdb.data;
                 old_ins.qj = 0;
             }
 
-            if (cdb_index == old_ins.qk) {
-                old_ins.vk = cdb_data;
+            if (local_cdb.index == old_ins.qk) {
+                old_ins.vk = local_cdb.data;
                 old_ins.qk = 0;
             }
 
-            if (cdb_index == old_ins.record_index) {
+            if (local_cdb.index == old_ins.record_index) {
                 old_ins.record_index = 0;
             }
 

@@ -37,3 +37,8 @@ struct PCBus {
     uint32_t address;
     uint32_t offset;
 };
+
+struct CommonDataBus{
+    size_t index;
+    uint32_t data;
+};

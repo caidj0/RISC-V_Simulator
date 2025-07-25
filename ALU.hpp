@@ -11,9 +11,10 @@ class ALU : public Updatable, public CDBSource {
 
    public:
     Wire<ALUBus> bus;
-    Wire<size_t> cdb_index;
+    Wire<CommonDataBus> cdb;
     Wire<bool> clear;
-    operator uint32_t() const { return out; }
+
+    CommonDataBus CDBOut() const { return CommonDataBus{record_index, out}; }
 
     ALU() {
         record_index <= [&]() -> size_t {
@@ -21,7 +22,7 @@ class ALU : public Updatable, public CDBSource {
                 return 0;
             }
 
-            if (cdb_index == record_index) {
+            if (cdb.value().index == record_index) {
                 return 0;
             }
 
