@@ -65,6 +65,7 @@ uint8_t get_op(uint32_t full_instruction);
 uint8_t get_subop(uint32_t full_instruction);
 uint8_t get_rs1(uint32_t full_instruction);
 uint8_t get_rs2(uint32_t full_instruction);
+uint8_t get_rd(uint32_t full_instruction);
 uint32_t get_imm(uint32_t full_instruction);
 uint8_t get_shamt(uint32_t full_instruction);
 bool get_variant_flag(uint32_t full_instruction);

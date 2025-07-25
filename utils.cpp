@@ -41,6 +41,14 @@ uint8_t get_rs2(uint32_t full_instruction) {
     return (full_instruction >> 20) & 0b11111;
 }
 
+uint8_t get_rd(uint32_t full_instruction) {
+    auto op_type = get_opType(get_op(full_instruction));
+    if (op_type != OpType::B && op_type != OpType::S) {
+        return (full_instruction >> 7) & 0b11111;
+    }
+    return 0;
+}
+
 uint32_t get_imm(uint32_t full_instruction) {
     uint32_t ret = 0;
     switch (get_opType(get_op(full_instruction))) {
