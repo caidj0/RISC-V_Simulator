@@ -1,32 +1,33 @@
 #include <cstdint>
+#include <vector>
 
 #include "ALU.hpp"
 #include "ROB.hpp"
 #include "bus.hpp"
 #include "memory.hpp"
 #include "regs.hpp"
+#include "rs.hpp"
 #include "utils.hpp"
+
+constexpr size_t N_ALU = 2;
 
 class CPU {
     Reg<uint32_t> PC;
     Regs regs;
-    Memory<2> mem;
-    ALU alu;
+    RegisterStats regstats;
     ReorderBuffer<> rob;
+    Memory<2> mem;
+    ReservationStation<MemBus> mem_rs;
+    ALU alus[N_ALU];
+    ReservationStation<ALU> alu_rses[N_ALU];
 
     uint64_t cycle_time;
-    uint8_t stage;  // 取指、译码、执行、访存、写回
 
-    uint32_t full_instruction;
-    Wire<uint8_t> op;
-    Wire<uint8_t> subop;
-    Wire<uint32_t> imm;
-    Wire<uint8_t> op_rs1;
-    Wire<uint8_t> op_rs2;
-    Wire<uint8_t> op_rd;
-    Wire<uint8_t> shamt;
-    Wire<bool> variant_flag;
-    Wire<OpType> op_type;
+    Wire<uint32_t> full_instruction;
+    Reg<bool> valid_instruction;
+
+    const std::vector<Updatable*> updatables;
+    const std::vector<CDBSource*> cdb_sources;
 
     void fetch();
     void decode();
@@ -40,5 +41,5 @@ class CPU {
    public:
     CPU();
 
-    bool step(uint8_t *ret);
+    bool step(uint8_t &ret);
 };

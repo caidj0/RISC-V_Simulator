@@ -74,3 +74,22 @@ class CDBSource {
    public:
     virtual CommonDataBus CDBOut() const = 0;
 };
+
+template <typename T, typename... Args>
+std::vector<T *> collectPointer(Args &&...args) {
+    std::vector<T *> result;
+
+    auto addToResult = [&](auto &arg) {
+        if constexpr (std::is_array_v<std::remove_reference_t<decltype(arg)>>) {
+            for (auto &elem : arg) {
+                result.push_back(&elem);
+            }
+        } else {
+            result.push_back(&arg);
+        }
+    };
+
+    (addToResult(args), ...);
+
+    return result;
+}
