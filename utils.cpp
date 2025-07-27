@@ -1,6 +1,7 @@
 #include "utils.hpp"
 
 #include <cstdint>
+#include <format>
 
 OpType get_opType(uint8_t op) {
     switch (op) {
@@ -34,11 +35,21 @@ uint8_t get_subop(uint32_t full_instruction) {
 }
 
 uint8_t get_rs1(uint32_t full_instruction) {
+    auto type = get_opType(get_op(full_instruction));
+    if (type == U || type == J) {
+        return 0;
+    }
+
     return (full_instruction >> 15) & 0b11111;
 }
 
 uint8_t get_rs2(uint32_t full_instruction) {
-    return (full_instruction >> 20) & 0b11111;
+    auto type = get_opType(get_op(full_instruction));
+    if (type == B || type == S || type == R) {
+        return (full_instruction >> 20) & 0b11111;
+    }
+
+    return 0;
 }
 
 uint8_t get_rd(uint32_t full_instruction) {
@@ -91,6 +102,9 @@ uint8_t get_shamt(uint32_t full_instruction) {
 bool get_variant_flag(uint32_t full_instruction) {
     auto op = get_op(full_instruction);
     auto subop = get_subop(full_instruction);
+    if (op == 0b1100011U) { /* Branch */
+        return subop == 0b000 || subop == 0b001;
+    }
     if ((op == 0b0010011U && subop == 0b101U) || op == 0b0110011U) {
         return full_instruction & 0x40000000U;
     }

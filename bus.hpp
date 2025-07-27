@@ -38,7 +38,20 @@ struct PCBus {
     uint32_t offset;
 };
 
-struct CommonDataBus{
+struct CommonDataBus {
     size_t index;
     uint32_t data;
 };
+
+template <typename T>
+T BusSelect(const auto& container, const auto& mapF) {
+    for (const auto &x : container) {
+        auto temp = mapF(x);
+
+        if (temp.index != 0) {
+            return temp;
+        }
+    }
+
+    return T();
+}

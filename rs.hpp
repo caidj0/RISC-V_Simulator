@@ -12,8 +12,6 @@ template <typename SpecBus>
 class ReservationStation : public Updatable {
     Reg<RSBus> ins;
 
-    const ReorderBuffer<>& rob;
-
     bool is_ready() const { return RSBus(ins).qj == 0 && RSBus(ins).qk == 0; }
 
    public:
@@ -21,7 +19,7 @@ class ReservationStation : public Updatable {
     Wire<RSBus> new_instruction;
     Wire<bool> clear;
 
-    ReservationStation(const ReorderBuffer<>& rob) : rob(rob) {
+    ReservationStation() {
         ins <= [&]() -> RSBus {
             if (clear) {
                 return RSBus();
@@ -59,7 +57,7 @@ class ReservationStation : public Updatable {
 
     bool is_busy() const { return RSBus(ins).record_index != 0; }
 
-    SpecBus execute() const {
+    SpecBus execute(const ReorderBuffer<>& rob) const {
         if (!clear && is_busy() && is_ready()) {
             RSBus rsbus = ins;
 
