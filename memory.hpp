@@ -58,13 +58,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.record_index != 0) {
-                if (record_index != 0) {
-                    throw std::runtime_error(
-                        "New mem operation requested while the last operation "
-                        "not "
-                        "finished yet!");
-                }
+            if (rb.record_index != 0 && record_index == 0) {
                 return rb.record_index;
             }
 
@@ -76,7 +70,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.record_index != 0) {
+            if (rb.record_index != 0 && record_index == 0) {
                 return get(rb.address);
             }
             return out;
