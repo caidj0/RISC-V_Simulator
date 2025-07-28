@@ -22,12 +22,12 @@ void CPU::baseWireInit() {
     execute_type = LAM(getExecuteType(get_op(full_instruction)));
     rs_index = [&]() -> size_t {
         switch (execute_type) {
-            case None_T:
-                return 0;
             case ALU_T:
                 return ALURSSelect();
             case Mem_T:
                 return MemRSSelect();
+            default:
+                return 0;
         }
     };
 
@@ -188,7 +188,7 @@ void CPU::memInit() {
     }
 
     mem.cdb = LAM(CDBSelect());
-    mem.PC = LAM(PC);
+    mem.PC = LAM(issue ? PC : mem.PC);
     mem.clear = LAM(rob.clear());
     mem.write_bus = LAM(rob.store());
     mem.read_bus = [&]() -> MemBus {
@@ -230,7 +230,7 @@ CPU::CPU()
                                            mem_rs, alus, alu_rs, predictor)),
       cdb_sources(collectPointer<CDBSource>(mem, alus)) {
     cycle_time <= LAM(cycle_time + 1);
-    full_instruction = LAM(issue ? mem.get_instruction() : full_instruction);
+    full_instruction = LAM(mem.get_instruction());
     valid_instruction <= [&]() -> bool { return !rob.clear(); };
 
     baseWireInit();

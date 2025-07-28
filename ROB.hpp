@@ -41,7 +41,7 @@ struct ROBItem {
     uint8_t rs1() const { return get_rs1(full_instruction); }
     uint8_t rs2() const { return get_rs2(full_instruction); }
     uint8_t imm() const { return get_imm(full_instruction); }
-    uint8_t sub_op() const { return get_subop(full_instruction); }
+    uint8_t subop() const { return get_subop(full_instruction); }
     uint8_t rd() const { return get_rd(full_instruction); }
 };
 
@@ -53,7 +53,7 @@ class ReorderBuffer : public Updatable {
 
     const Regs& regs;
 
-    size_t index_inc(size_t index) { return index == length ? 1 : index + 1; }
+    size_t index_inc(size_t index) const { return index == length ? 1 : index + 1; }
 
    public:
     Wire<CommonDataBus> cdb;
@@ -67,7 +67,7 @@ class ReorderBuffer : public Updatable {
                       "The reorder buffer needs at least two elements long!");
         head = 1;
         tail = 1;
-        head <= [&]() {
+        head <= [&]() -> size_t {
             if (clear()) {
                 return 1;
             }
@@ -100,13 +100,13 @@ class ReorderBuffer : public Updatable {
 
         // 更新每个 item
         for (size_t i = 1; i <= length; i++) {
-            items[i].full_instruction <= [&, i]() {
+            items[i].full_instruction <= [&, i]() -> uint32_t {
                 if (need_update(i)) {
                     return full_instruction;
                 }
                 return items[i].full_instruction;
             };
-            items[i].ready <= [&, i]() {
+            items[i].ready <= [&, i]() -> bool {
                 if (need_update(i)) {
                     return false;
                 }
@@ -117,19 +117,19 @@ class ReorderBuffer : public Updatable {
 
                 return items[i].ready;
             };
-            items[i].PC <= [&, i]() {
+            items[i].PC <= [&, i]() -> uint32_t {
                 if (need_update(i)) {
                     return PC;
                 }
                 return items[i].PC;
             };
-            items[i].branched <= [&, i]() {
+            items[i].branched <= [&, i]() -> bool {
                 if (need_update(i)) {
                     return branched;
                 }
                 return items[i].branched;
             };
-            items[i].value <= [&, i]() {
+            items[i].value <= [&, i]() -> uint32_t {
                 CommonDataBus local_cdb = cdb;
                 if (local_cdb.reorder_index == i) {
                     return local_cdb.data;
@@ -196,12 +196,12 @@ class ReorderBuffer : public Updatable {
         if (commit()) {
             // jalr 指令和 b 指令
             if (items[head].is_jalr()) {
-                return PCBus{true, regs[items[head].rs1()], items.imm()};
+                return PCBus{true, regs.reg(items[head].rs1()), items[head].imm()};
             }
 
             if (items[head].is_mispredicted()) {
                 return PCBus{true, items[head].PC,
-                             items[head].branched ? 4 : items.imm()};
+                             items[head].branched ? 4U : items[head].imm()};
             }
         }
 
@@ -212,7 +212,7 @@ class ReorderBuffer : public Updatable {
         if (commit()) {
             if (items[head].is_store()) {
                 return MemBus{head, items[head].subop(), items[head].value,
-                              regs[items[head].rs2()]};
+                              regs.reg(items[head].rs2())};
             }
         }
         return MemBus();
@@ -232,7 +232,7 @@ class ReorderBuffer : public Updatable {
         for (auto& item : items) {
             item.full_instruction.pull();
             item.ready.pull();
-            item.rd.pull();
+            item.PC.pull();
             item.value.pull();
             item.branched.pull();
         }
@@ -244,7 +244,7 @@ class ReorderBuffer : public Updatable {
         for (auto& item : items) {
             item.full_instruction.update();
             item.ready.update();
-            item.rd.update();
+            item.PC.update();
             item.value.update();
             item.branched.update();
         }

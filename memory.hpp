@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <stdexcept>
 #include <string>
 
 #include "bus.hpp"
@@ -64,7 +63,7 @@ class Memory : public Updatable, public CDBSource {
 
             return record_index;
         };
-        out <= [&]() {
+        out <= [&]() -> uint32_t {
             if (clear) {
                 return 0;
             }
