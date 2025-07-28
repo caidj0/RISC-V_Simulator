@@ -51,14 +51,14 @@ void CPU::baseWireInit() {
         // 设置 qj vj
         switch (op_type) {
             case U:
-                ret.vj = op == 0b0110111 ? 0 : PC;
+                ret.vj = op == 0b0110111 ? 0 : instruction_PC;
                 break;
             case J:
-                ret.vj = PC;
+                ret.vj = instruction_PC;
                 break;
             case I:
                 if (op == 0b1100111) {
-                    ret.vj = PC;
+                    ret.vj = instruction_PC;
                 } else {
                     ret.vj = regs.reg(rs1);
                     ret.qj = regs.reorder(rs1);
@@ -131,6 +131,25 @@ void CPU::baseWireInit() {
     };
 }
 
+void CPU::regInit() {
+    regs.commit_bus = LAM(rob.regCommit());
+    regs.issue_bus = [&]() -> RegIssueBus {
+        if (issue) {
+            return RegIssueBus{get_rd(full_instruction), rob.next_index()};
+        }
+        return RegIssueBus();
+    };
+    regs.clear = LAM(rob.clear());
+}
+
+void CPU::robInit() {
+    rob.PC = LAM(instruction_PC);
+    rob.add_instruction = LAM(issue);
+    rob.branched = LAM(predictor.branch());
+    rob.full_instruction = LAM(full_instruction);
+    rob.cdb = LAM(CDBSelect());
+}
+
 CPU::CPU()
     : PC(),
       regs(),
@@ -140,9 +159,10 @@ CPU::CPU()
       alus(),
       alu_rs(),
       cycle_time(0),
-      updatables(
-          collectPointer<Updatable>(PC, regs, rob, mem, mem_rs, alus, alu_rs)),
+      updatables(collectPointer<Updatable>(cycle_time, PC, regs, rob, mem,
+                                           mem_rs, alus, alu_rs, predictor)),
       cdb_sources(collectPointer<CDBSource>(mem, alus)) {
+    cycle_time <= LAM(cycle_time + 1);
     full_instruction = LAM(issue ? mem.get_instruction() : full_instruction);
     valid_instruction <= [&]() -> bool { return !rob.clear(); };
 
@@ -151,29 +171,31 @@ CPU::CPU()
     PC <= [&]() -> uint32_t {
         auto relocate = rob.PCRelocate();
         uint32_t address = PC;
-        uint32_t offset = 0;
+        uint32_t offset = 4;
         if (relocate.flag) {
             address = relocate.address;
             offset = relocate.offset;
         } else if (issue) {
-            if (get_op(full_instruction) == 0b1101111U) {
-                offset = get_imm(full_instruction);
-            } else {
-                offset = 4;
+            switch (get_op(full_instruction)) {
+                case 0b1101111U: /* jalr */
+                    address = instruction_PC;
+                    offset = get_imm(full_instruction);
+                    break;
+                case 0b1100011U: /* branch */
+                    if (predictor.branch()) {
+                        address = instruction_PC;
+                        offset = get_imm(full_instruction);
+                    }
+                    break;
             }
         }
 
         return address + offset;
     };
+    instruction_PC <= LAM(PC);
 
-    regs.commit_bus = LAM(rob.regCommit());
-    regs.issue_bus = [&]() -> RegIssueBus {
-        if (issue) {
-            return RegIssueBus{get_rd(full_instruction), rob.next_index()};
-        }
-        return RegIssueBus();
-    };
-    regs.clear = LAM(rob.clear());
+    regInit();
+    robInit();
 
     for (size_t i = 1; i <= N_MemRS; i++) {
         mem_rs[i].new_instruction = [&, i]() -> RSBus {
@@ -194,7 +216,6 @@ CPU::CPU()
 
 bool CPU::step(uint8_t &ret) {
     pullAndUpdate();
-    cycle_time++;
     return false;
 }
 

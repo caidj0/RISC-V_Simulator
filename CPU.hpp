@@ -6,6 +6,7 @@
 #include "ROB.hpp"
 #include "bus.hpp"
 #include "memory.hpp"
+#include "predictor.hpp"
 #include "regs.hpp"
 #include "rs.hpp"
 #include "utils.hpp"
@@ -16,19 +17,19 @@ constexpr size_t N_MemRS = 4;
 
 enum ExecuteType { None_T, ALU_T, Mem_T };
 
-
 class CPU {
     Reg<uint32_t> PC;
     Regs regs;
     ReorderBuffer<> rob;
     Memory<2> mem;
-
     ReservationStation<MemBus> mem_rs[N_MemRS + 1];
     ALU alus[N_ALU + 1];
     ReservationStation<ALU> alu_rs[N_ALU + 1];
-
-    uint64_t cycle_time;
-
+    Predictor predictor;
+    
+    Reg<uint64_t> cycle_time;
+    
+    Reg<uint32_t> instruction_PC;
     Wire<uint32_t> full_instruction;
     Reg<bool> valid_instruction;
     Wire<RSBus> rs_bus;
@@ -44,7 +45,10 @@ class CPU {
     CommonDataBus CDBSelect() const;
     size_t MemRSSelect() const;
     size_t ALURSSelect() const;
+
     void baseWireInit();
+    void regInit();
+    void robInit();
 
    public:
     CPU();
