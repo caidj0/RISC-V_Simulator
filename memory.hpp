@@ -43,7 +43,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.record_index != 0) {
+            if (rb.reorder_index != 0) {
                 return DELAY;
             }
             return remain_delay > 0 ? remain_delay - 1 : 0;
@@ -53,13 +53,13 @@ class Memory : public Updatable, public CDBSource {
                 return 0;
             }
 
-            if (cdb.value().index == record_index) {
+            if (cdb.value().reorder_index == record_index) {
                 return 0;
             }
 
             MemBus rb = read_bus;
-            if (rb.record_index != 0 && record_index == 0) {
-                return rb.record_index;
+            if (rb.reorder_index != 0 && record_index == 0) {
+                return rb.reorder_index;
             }
 
             return record_index;
@@ -70,7 +70,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.record_index != 0 && record_index == 0) {
+            if (rb.reorder_index != 0 && record_index == 0) {
                 return get(rb.address);
             }
             return out;
@@ -115,7 +115,7 @@ class Memory : public Updatable, public CDBSource {
         write_bus_reg.update();
 
         MemBus wb = write_bus_reg;
-        if (wb.record_index != 0) {
+        if (wb.reorder_index != 0) {
             mems[wb.address] = wb.input & 0xff;
             if (wb.write_mode & 0b011) {
                 mems[wb.address + 1] = (wb.input >> 8) & 0xff;

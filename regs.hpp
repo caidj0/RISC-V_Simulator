@@ -22,7 +22,7 @@ class Regs : public Updatable {
         for (uint8_t i = 1; i < 32; i++) {
             _regs[i] <= [&, i]() -> uint32_t {
                 RegCommitBus cb = commit_bus;
-                if (_reorder[i] == cb.reorder) {
+                if (_reorder[i] == cb.reorder_index) {
                     return cb.data;
                 }
                 return _regs[i];
@@ -34,10 +34,10 @@ class Regs : public Updatable {
                 RegCommitBus cb = commit_bus;
 
                 if (i == ib.rd) {
-                    return ib.reorder;
+                    return ib.reorder_index;
                 }
 
-                if (_reorder[i] == cb.reorder) {
+                if (_reorder[i] == cb.reorder_index) {
                     return 0;
                 }
 

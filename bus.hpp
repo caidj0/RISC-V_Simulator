@@ -4,7 +4,7 @@
 #include <cstdint>
 
 struct RSBus {
-    size_t record_index;
+    size_t reorder_index;
     size_t qj;
     size_t qk;
 
@@ -18,7 +18,7 @@ struct RSBus {
 };
 
 struct ALUBus {
-    size_t record_index;
+    size_t reorder_index;
     uint8_t subop;
     bool variant_flag;
     uint32_t num_A;
@@ -26,7 +26,7 @@ struct ALUBus {
 };
 
 struct MemBus {
-    size_t record_index;
+    size_t reorder_index;
     uint8_t write_mode;
     uint32_t address;
     uint32_t input;
@@ -39,26 +39,26 @@ struct PCBus {
 };
 
 struct CommonDataBus {
-    size_t index;
+    size_t reorder_index;
     uint32_t data;
 };
 
 struct RegIssueBus {
     uint8_t rd;
-    size_t reorder;
+    size_t reorder_index;
 };
 
 struct RegCommitBus {
-    size_t reorder;
+    size_t reorder_index;
     uint32_t data;
 };
 
 template <typename T>
 T BusSelect(const auto& container, const auto& mapF) {
     for (const auto& x : container) {
-        auto temp = mapF(x);
+        T temp = mapF(x);
 
-        if (temp.index != 0) {
+        if (temp.reorder_index != 0) {
             return temp;
         }
     }

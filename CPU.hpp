@@ -24,11 +24,11 @@ class CPU {
     Memory<2> mem;
     ReservationStation<MemBus> mem_rs[N_MemRS + 1];
     ALU alus[N_ALU + 1];
-    ReservationStation<ALU> alu_rs[N_ALU + 1];
+    ReservationStation<ALUBus> alu_rs[N_ALU + 1];
     Predictor predictor;
-    
+
     Reg<uint64_t> cycle_time;
-    
+
     Reg<uint32_t> instruction_PC;
     Wire<uint32_t> full_instruction;
     Reg<bool> valid_instruction;
@@ -46,9 +46,13 @@ class CPU {
     size_t MemRSSelect() const;
     size_t ALURSSelect() const;
 
+    void PCInit();
     void baseWireInit();
     void regInit();
     void robInit();
+    void memInit();
+    void aluInit();
+    void predictorInit();
 
    public:
     CPU();

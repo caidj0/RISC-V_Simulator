@@ -38,7 +38,7 @@ void CPU::baseWireInit() {
 
     rs_bus = [&]() -> RSBus {
         RSBus ret;
-        ret.record_index = rob.next_index();
+        ret.reorder_index = rob.next_index();
 
         auto rs1 = get_rs1(full_instruction);
         auto rs2 = get_rs1(full_instruction);
@@ -142,32 +142,7 @@ void CPU::regInit() {
     regs.clear = LAM(rob.clear());
 }
 
-void CPU::robInit() {
-    rob.PC = LAM(instruction_PC);
-    rob.add_instruction = LAM(issue);
-    rob.branched = LAM(predictor.branch());
-    rob.full_instruction = LAM(full_instruction);
-    rob.cdb = LAM(CDBSelect());
-}
-
-CPU::CPU()
-    : PC(),
-      regs(),
-      rob(regs),
-      mem(),
-      mem_rs(),
-      alus(),
-      alu_rs(),
-      cycle_time(0),
-      updatables(collectPointer<Updatable>(cycle_time, PC, regs, rob, mem,
-                                           mem_rs, alus, alu_rs, predictor)),
-      cdb_sources(collectPointer<CDBSource>(mem, alus)) {
-    cycle_time <= LAM(cycle_time + 1);
-    full_instruction = LAM(issue ? mem.get_instruction() : full_instruction);
-    valid_instruction <= [&]() -> bool { return !rob.clear(); };
-
-    baseWireInit();
-
+void CPU::PCInit() {
     PC <= [&]() -> uint32_t {
         auto relocate = rob.PCRelocate();
         uint32_t address = PC;
@@ -193,10 +168,17 @@ CPU::CPU()
         return address + offset;
     };
     instruction_PC <= LAM(PC);
+}
 
-    regInit();
-    robInit();
+void CPU::robInit() {
+    rob.PC = LAM(instruction_PC);
+    rob.add_instruction = LAM(issue);
+    rob.branched = LAM(predictor.branch());
+    rob.full_instruction = LAM(full_instruction);
+    rob.cdb = LAM(CDBSelect());
+}
 
+void CPU::memInit() {
     for (size_t i = 1; i <= N_MemRS; i++) {
         mem_rs[i].new_instruction = [&, i]() -> RSBus {
             return (execute_type == Mem_T && rs_index == i) ? rs_bus : RSBus();
@@ -205,6 +187,19 @@ CPU::CPU()
         mem_rs[i].clear = LAM(rob.clear());
     }
 
+    mem.cdb = LAM(CDBSelect());
+    mem.PC = LAM(PC);
+    mem.clear = LAM(rob.clear());
+    mem.write_bus = LAM(rob.store());
+    mem.read_bus = [&]() -> MemBus {
+        return BusSelect<MemBus>(
+            mem_rs, [&](const ReservationStation<MemBus> &x) -> MemBus {
+                return x.execute(rob);
+            });
+    };
+}
+
+void CPU::aluInit() {
     for (size_t i = 1; i <= N_ALU; i++) {
         alu_rs[i].new_instruction = [&, i]() -> RSBus {
             return (execute_type == ALU_T && rs_index == i) ? rs_bus : RSBus();
@@ -212,9 +207,46 @@ CPU::CPU()
         alu_rs[i].cdb = LAM(CDBSelect());
         alu_rs[i].clear = LAM(rob.clear());
     }
+
+    for (size_t i = 1; i <= N_ALU; i++) {
+        alus[i].cdb = LAM(CDBSelect());
+        alus[i].clear = LAM(rob.clear());
+        alus[i].bus = LAM(alu_rs[i].execute(rob));
+    }
+}
+
+void CPU::predictorInit() {}
+
+CPU::CPU()
+    : PC(),
+      regs(),
+      rob(regs),
+      mem(),
+      mem_rs(),
+      alus(),
+      alu_rs(),
+      cycle_time(0),
+      updatables(collectPointer<Updatable>(cycle_time, PC, regs, rob, mem,
+                                           mem_rs, alus, alu_rs, predictor)),
+      cdb_sources(collectPointer<CDBSource>(mem, alus)) {
+    cycle_time <= LAM(cycle_time + 1);
+    full_instruction = LAM(issue ? mem.get_instruction() : full_instruction);
+    valid_instruction <= [&]() -> bool { return !rob.clear(); };
+
+    baseWireInit();
+    PCInit();
+    regInit();
+    robInit();
+    memInit();
+    aluInit();
+    predictorInit();
 }
 
 bool CPU::step(uint8_t &ret) {
+    if (rob.commit() && rob.front().full_instruction == 0x0ff00513U) {
+        ret = regs.reg(10);
+        return true;
+    }
     pullAndUpdate();
     return false;
 }

@@ -22,13 +22,13 @@ class ALU : public Updatable, public CDBSource {
                 return 0;
             }
 
-            if (cdb.value().index == record_index) {
+            if (cdb.value().reorder_index == record_index) {
                 return 0;
             }
 
             ALUBus ab = bus;
-            if (ab.record_index != 0 && record_index == 0) {
-                return ab.record_index;
+            if (ab.reorder_index != 0 && record_index == 0) {
+                return ab.reorder_index;
             }
 
             return record_index;
@@ -40,7 +40,7 @@ class ALU : public Updatable, public CDBSource {
             }
 
             ALUBus ab = bus;
-            if (ab.record_index != 0 && record_index == 0) {
+            if (ab.reorder_index != 0 && record_index == 0) {
                 switch (ab.subop) {
                     case 0b000:
                         if (ab.variant_flag) {  // sub

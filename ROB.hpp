@@ -111,7 +111,7 @@ class ReorderBuffer : public Updatable {
                     return false;
                 }
 
-                if (cdb.value().index == i) {
+                if (cdb.value().reorder_index == i) {
                     return true;
                 }
 
@@ -131,7 +131,7 @@ class ReorderBuffer : public Updatable {
             };
             items[i].value <= [&, i]() {
                 CommonDataBus local_cdb = cdb;
-                if (local_cdb.index == i) {
+                if (local_cdb.reorder_index == i) {
                     return local_cdb.data;
                 }
                 return items[i].value;
@@ -249,4 +249,6 @@ class ReorderBuffer : public Updatable {
             item.branched.update();
         }
     }
+
+    const ROBItem& front() const { return items[head]; }
 };
