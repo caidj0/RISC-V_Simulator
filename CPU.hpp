@@ -20,7 +20,6 @@ enum ExecuteType { None_T, ALU_T, Mem_T };
 class CPU {
     Reg<uint32_t> PC;
     Regs regs;
-    RegisterStats regstats;
     ReorderBuffer<> rob;
     Memory<2> mem;
 

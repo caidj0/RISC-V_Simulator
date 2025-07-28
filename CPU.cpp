@@ -60,15 +60,15 @@ void CPU::baseWireInit() {
                 if (op == 0b1100111) {
                     ret.vj = PC;
                 } else {
-                    ret.vj = regs[rs1];
-                    ret.qj = regstats[rs1];
+                    ret.vj = regs.reg(rs1);
+                    ret.qj = regs.reorder(rs1);
                 }
                 break;
             case S:
             case B:
             case R:
-                ret.vj = regs[rs1];
-                ret.qj = regstats[rs1];
+                ret.vj = regs.reg(rs1);
+                ret.qj = regs.reorder(rs1);
                 break;
         }
 
@@ -94,8 +94,8 @@ void CPU::baseWireInit() {
             case S:
             case B:
             case R:
-                ret.vk = regs[rs2];
-                ret.qk = regstats[rs2];
+                ret.vk = regs.reg(rs2);
+                ret.qk = regs.reorder(rs2);
                 break;
         }
 
@@ -134,15 +134,14 @@ void CPU::baseWireInit() {
 CPU::CPU()
     : PC(),
       regs(),
-      regstats(),
       rob(regs),
       mem(),
       mem_rs(),
       alus(),
       alu_rs(),
       cycle_time(0),
-      updatables(collectPointer<Updatable>(PC, regs, regstats, rob, mem, mem_rs,
-                                           alus, alu_rs)),
+      updatables(
+          collectPointer<Updatable>(PC, regs, rob, mem, mem_rs, alus, alu_rs)),
       cdb_sources(collectPointer<CDBSource>(mem, alus)) {
     full_instruction = LAM(issue ? mem.get_instruction() : full_instruction);
     valid_instruction <= [&]() -> bool { return !rob.clear(); };
@@ -166,6 +165,15 @@ CPU::CPU()
 
         return address + offset;
     };
+
+    regs.commit_bus = LAM(rob.regCommit());
+    regs.issue_bus = [&]() -> RegIssueBus {
+        if (issue) {
+            return RegIssueBus{get_rd(full_instruction), rob.next_index()};
+        }
+        return RegIssueBus();
+    };
+    regs.clear = LAM(rob.clear());
 
     for (size_t i = 1; i <= N_MemRS; i++) {
         mem_rs[i].new_instruction = [&, i]() -> RSBus {

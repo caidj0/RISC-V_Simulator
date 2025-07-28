@@ -43,9 +43,19 @@ struct CommonDataBus {
     uint32_t data;
 };
 
+struct RegIssueBus {
+    uint8_t rd;
+    size_t reorder;
+};
+
+struct RegCommitBus {
+    size_t reorder;
+    uint32_t data;
+};
+
 template <typename T>
 T BusSelect(const auto& container, const auto& mapF) {
-    for (const auto &x : container) {
+    for (const auto& x : container) {
         auto temp = mapF(x);
 
         if (temp.index != 0) {

@@ -218,6 +218,13 @@ class ReorderBuffer : public Updatable {
         return MemBus();
     }
 
+    RegCommitBus regCommit() const {
+        if (commit()) {
+            return RegCommitBus{head, items[head].value};
+        }
+        return RegCommitBus();
+    }
+
     void pull() {
         head.pull();
         tail.pull();
