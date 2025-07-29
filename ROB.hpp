@@ -41,7 +41,7 @@ struct ROBItem {
 
     uint8_t rs1() const { return get_rs1(full_instruction); }
     uint8_t rs2() const { return get_rs2(full_instruction); }
-    uint8_t imm() const { return get_imm(full_instruction); }
+    uint32_t imm() const { return get_imm(full_instruction); }
     uint8_t subop() const { return get_subop(full_instruction); }
     uint8_t rd() const { return get_rd(full_instruction); }
 };
