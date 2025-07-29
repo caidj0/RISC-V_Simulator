@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <format>
+#include <iostream>
 #include <stdexcept>
 
 #include "utils.hpp"
@@ -26,7 +27,8 @@ OpType get_opType(uint8_t op) {
         case 0b0110011:
             return OpType::R;
         default:
-            throw std::runtime_error(std::format("Unknown operation code 0b{:07b}", op));
+            throw std::runtime_error(
+                std::format("Unknown operation code 0b{:07b}", op));
     }
 }
 
@@ -230,8 +232,8 @@ void CPU::writeBack() {
                     return mem & 0x0000FFFFU;
                     break;
                 default:
-                    throw std::runtime_error(std::format("Unknown memory subcode 0b{:03b}",
-                                      uint8_t(subop)));
+                    throw std::runtime_error(std::format(
+                        "Unknown memory subcode 0b{:03b}", uint8_t(subop)));
             }
         }
         return alu;
@@ -264,7 +266,7 @@ void CPU::writeBack() {
     };
 }
 
-bool CPU::step(uint8_t *ret) {
+bool CPU::step(uint8_t &ret) {
     switch (stage) {
         case 0:
             fetch();
@@ -272,7 +274,7 @@ bool CPU::step(uint8_t *ret) {
         case 1:
             decode();
             if (full_instruction == 0x0ff00513) {
-                *ret = static_cast<uint8_t>(regs.direct_access(10));
+                ret = static_cast<uint8_t>(regs.direct_access(10));
                 return true;
             }
             break;
@@ -287,7 +289,18 @@ bool CPU::step(uint8_t *ret) {
             break;
     }
 
+    uint32_t old_PC = PC;
+
     pullAndUpdate();
+
+    if (stage == 4) {
+        std::cout << std::format("Commit PC: 0x{:08X}, regs: ", old_PC);
+        for (int i = 0; i < 32; i++) {
+            std::cout << std::format("0x{:08X} ", regs.direct_access(i));
+        }
+        std::cout << std::endl;
+    }
+
     cycle_time++;
     stage = (stage + 1) % 5;
     return false;

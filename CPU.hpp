@@ -37,5 +37,5 @@ class CPU {
    public:
     CPU();
 
-    bool step(uint8_t *ret);
+    bool step(uint8_t &ret);
 };
