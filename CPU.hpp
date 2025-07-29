@@ -29,7 +29,7 @@ class CPU {
 
     Reg<uint64_t> cycle_time;
 
-    Reg<uint32_t> instruction_PC;
+    Wire<uint32_t> next_PC;
     Wire<uint32_t> full_instruction;
     Reg<bool> valid_instruction;
     Wire<RSBus> rs_bus;
@@ -45,6 +45,8 @@ class CPU {
     CommonDataBus CDBSelect() const;
     size_t MemRSSelect() const;
     size_t ALURSSelect() const;
+
+    RegValueBus regValue(uint8_t index) const;
 
     void PCInit();
     void baseWireInit();

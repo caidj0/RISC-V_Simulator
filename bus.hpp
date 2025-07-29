@@ -53,6 +53,11 @@ struct RegCommitBus {
     uint32_t data;
 };
 
+struct RegValueBus {
+    size_t q;
+    uint32_t v;
+};
+
 template <typename T>
 T BusSelect(const auto& container, const auto& mapF) {
     for (const auto& x : container) {

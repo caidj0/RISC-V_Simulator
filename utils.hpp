@@ -58,7 +58,7 @@ int32_t sext(uint32_t num) {
     return signed_bit{static_cast<int32_t>(num)}.val;
 }
 
-enum OpType { U, J, I, B, S, R };
+enum OpType { Unknown, U, J, I, B, S, R };
 
 OpType get_opType(uint8_t op);
 uint8_t get_op(uint32_t full_instruction);

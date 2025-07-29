@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <stdexcept>
 
 #include "bus.hpp"
@@ -53,7 +54,9 @@ class ReorderBuffer : public Updatable {
 
     const Regs& regs;
 
-    size_t index_inc(size_t index) const { return index == length ? 1 : index + 1; }
+    size_t index_inc(size_t index) const {
+        return index == length ? 1 : index + 1;
+    }
 
    public:
     Wire<CommonDataBus> cdb;
@@ -84,8 +87,8 @@ class ReorderBuffer : public Updatable {
             }
 
             if (add_instruction) {
-                auto new_tail = next_index();
-                if (new_tail == 0) {
+                auto new_tail = index_inc(tail);
+                if (new_tail == head) {
                     throw std::runtime_error(
                         "There is no more space but instruction added!");
                 }
@@ -100,15 +103,16 @@ class ReorderBuffer : public Updatable {
 
         // 更新每个 item
         for (size_t i = 1; i <= length; i++) {
-            items[i].full_instruction <= [&, i]() -> uint32_t {
+            items[i].full_instruction <= [&, i, need_update]() -> uint32_t {
                 if (need_update(i)) {
                     return full_instruction;
                 }
                 return items[i].full_instruction;
             };
-            items[i].ready <= [&, i]() -> bool {
+            items[i].ready <= [&, i, need_update]() -> bool {
                 if (need_update(i)) {
-                    return false;
+                    return get_op(full_instruction) ==
+                           0b0110111U;  // lui 指令已经 ready 了
                 }
 
                 if (cdb.value().reorder_index == i) {
@@ -117,19 +121,23 @@ class ReorderBuffer : public Updatable {
 
                 return items[i].ready;
             };
-            items[i].PC <= [&, i]() -> uint32_t {
+            items[i].PC <= [&, i, need_update]() -> uint32_t {
                 if (need_update(i)) {
                     return PC;
                 }
                 return items[i].PC;
             };
-            items[i].branched <= [&, i]() -> bool {
+            items[i].branched <= [&, i, need_update]() -> bool {
                 if (need_update(i)) {
                     return branched;
                 }
                 return items[i].branched;
             };
-            items[i].value <= [&, i]() -> uint32_t {
+            items[i].value <= [&, i, need_update]() -> uint32_t {
+                if (need_update(i) && get_op(full_instruction) == 0b0110111U) {
+                    return get_imm(full_instruction);
+                }
+
                 CommonDataBus local_cdb = cdb;
                 if (local_cdb.reorder_index == i) {
                     return local_cdb.data;
@@ -140,9 +148,9 @@ class ReorderBuffer : public Updatable {
     }
 
     // 返回 0 说明 ROB 已满
-    size_t next_index() const {
+    size_t get_index() const {
         auto next = index_inc(tail);
-        return next == head ? 0 : next;
+        return next == head ? 0 : tail;
     }
 
     bool commit() const {
@@ -196,7 +204,8 @@ class ReorderBuffer : public Updatable {
         if (commit()) {
             // jalr 指令和 b 指令
             if (items[head].is_jalr()) {
-                return PCBus{true, regs.reg(items[head].rs1()), items[head].imm()};
+                return PCBus{true, regs.reg(items[head].rs1()),
+                             items[head].imm()};
             }
 
             if (items[head].is_mispredicted()) {
@@ -209,7 +218,7 @@ class ReorderBuffer : public Updatable {
     }
 
     MemBus store() const {
-        if (commit()) {
+        if (commit() && !clear()) {
             if (items[head].is_store()) {
                 return MemBus{head, items[head].subop(), items[head].value,
                               regs.reg(items[head].rs2())};
@@ -219,7 +228,7 @@ class ReorderBuffer : public Updatable {
     }
 
     RegCommitBus regCommit() const {
-        if (commit()) {
+        if (commit() && !clear()) {
             return RegCommitBus{head, items[head].value};
         }
         return RegCommitBus();
@@ -251,4 +260,13 @@ class ReorderBuffer : public Updatable {
     }
 
     const ROBItem& front() const { return items[head]; }
+
+    const ROBItem& getItem(size_t index) const {
+        if (index == 0 || index > length) {
+            throw std::out_of_range(std::format(
+                "Accessing the {}th item out of {}!\n", index, length));
+        }
+
+        return items[index];
+    }
 };

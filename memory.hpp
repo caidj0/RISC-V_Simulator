@@ -10,7 +10,7 @@ template <size_t DELAY>
 class Memory : public Updatable, public CDBSource {
     std::map<uint32_t, uint8_t> mems;
 
-    Reg<size_t> record_index;
+    Reg<size_t> reorder_index;
     Reg<size_t> remain_delay;
     Reg<uint32_t> instruction;
     Reg<uint32_t> out;
@@ -42,26 +42,28 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.reorder_index != 0) {
+            if (rb.reorder_index != 0 && rb.reorder_index != reorder_index) {
                 return DELAY;
             }
             return remain_delay > 0 ? remain_delay - 1 : 0;
         };
-        record_index <= [&]() -> size_t {
+        reorder_index <= [&]() -> size_t {
             if (clear) {
                 return 0;
             }
 
-            if (cdb.value().reorder_index == record_index) {
-                return 0;
+            if (reorder_index != 0) {
+                if (cdb.value().reorder_index == reorder_index) {
+                    return 0;
+                }
+            } else {
+                MemBus rb = read_bus;
+                if (rb.reorder_index != 0) {
+                    return rb.reorder_index;
+                }
             }
 
-            MemBus rb = read_bus;
-            if (rb.reorder_index != 0 && record_index == 0) {
-                return rb.reorder_index;
-            }
-
-            return record_index;
+            return reorder_index;
         };
         out <= [&]() -> uint32_t {
             if (clear) {
@@ -69,7 +71,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.reorder_index != 0 && record_index == 0) {
+            if (rb.reorder_index != 0 && reorder_index == 0) {
                 return get(rb.address);
             }
             return out;
@@ -94,12 +96,12 @@ class Memory : public Updatable, public CDBSource {
     uint32_t get_instruction() const { return instruction; }
 
     CommonDataBus CDBOut() const {
-        return remain_delay == 0 ? CommonDataBus{record_index, out}
+        return remain_delay == 0 ? CommonDataBus{reorder_index, out}
                                  : CommonDataBus();
     }
 
     void pull() {
-        record_index.pull();
+        reorder_index.pull();
         remain_delay.pull();
         instruction.pull();
         out.pull();
@@ -107,7 +109,7 @@ class Memory : public Updatable, public CDBSource {
     }
 
     void update() {
-        record_index.update();
+        reorder_index.update();
         remain_delay.update();
         instruction.update();
         out.update();

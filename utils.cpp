@@ -1,7 +1,6 @@
 #include "utils.hpp"
 
 #include <cstdint>
-#include <format>
 
 OpType get_opType(uint8_t op) {
     switch (op) {
@@ -21,8 +20,7 @@ OpType get_opType(uint8_t op) {
         case 0b0110011:
             return OpType::R;
         default:
-            throw std::runtime_error(
-                std::format("Unknown operation code 0b{:07b}", op));
+            return OpType::Unknown;
     }
 }
 
@@ -63,6 +61,8 @@ uint8_t get_rd(uint32_t full_instruction) {
 uint32_t get_imm(uint32_t full_instruction) {
     uint32_t ret = 0;
     switch (get_opType(get_op(full_instruction))) {
+        case Unknown:
+            break;
         case U:
             ret |= full_instruction & 0xFFFFF000U;
             break;

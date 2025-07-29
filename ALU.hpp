@@ -6,7 +6,7 @@
 #include "utils.hpp"
 
 class ALU : public Updatable, public CDBSource {
-    Reg<size_t> record_index;
+    Reg<size_t> reorder_index;
     Reg<uint32_t> out;
 
    public:
@@ -14,24 +14,26 @@ class ALU : public Updatable, public CDBSource {
     Wire<CommonDataBus> cdb;
     Wire<bool> clear;
 
-    CommonDataBus CDBOut() const { return CommonDataBus{record_index, out}; }
+    CommonDataBus CDBOut() const { return CommonDataBus{reorder_index, out}; }
 
     ALU() {
-        record_index <= [&]() -> size_t {
+        reorder_index <= [&]() -> size_t {
             if (clear) {
                 return 0;
             }
 
-            if (cdb.value().reorder_index == record_index) {
-                return 0;
+            if (reorder_index != 0) {
+                if (cdb.value().reorder_index == reorder_index) {
+                    return 0;
+                }
+            } else {
+                ALUBus ab = bus;
+                if (ab.reorder_index != 0) {
+                    return ab.reorder_index;
+                }
             }
 
-            ALUBus ab = bus;
-            if (ab.reorder_index != 0 && record_index == 0) {
-                return ab.reorder_index;
-            }
-
-            return record_index;
+            return reorder_index;
         };
 
         out <= [&]() -> uint32_t {
@@ -40,7 +42,7 @@ class ALU : public Updatable, public CDBSource {
             }
 
             ALUBus ab = bus;
-            if (ab.reorder_index != 0 && record_index == 0) {
+            if (ab.reorder_index != 0 && reorder_index == 0) {
                 switch (ab.subop) {
                     case 0b000:
                         if (ab.variant_flag) {  // sub
@@ -90,12 +92,12 @@ class ALU : public Updatable, public CDBSource {
     }
 
     void pull() {
-        record_index.pull();
+        reorder_index.pull();
         out.pull();
     }
 
     void update() {
-        record_index.pull();
+        reorder_index.update();
         out.update();
     }
 };

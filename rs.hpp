@@ -37,17 +37,17 @@ class ReservationStation : public Updatable {
 
             CommonDataBus local_cdb = cdb;
 
-            if (local_cdb.reorder_index == old_ins.qj) {
+            if (local_cdb.reorder_index != 0 && local_cdb.reorder_index == old_ins.qj) {
                 old_ins.vj = local_cdb.data;
                 old_ins.qj = 0;
             }
 
-            if (local_cdb.reorder_index == old_ins.qk) {
+            if (local_cdb.reorder_index != 0 && local_cdb.reorder_index == old_ins.qk) {
                 old_ins.vk = local_cdb.data;
                 old_ins.qk = 0;
             }
 
-            if (local_cdb.reorder_index == old_ins.reorder_index) {
+            if (local_cdb.reorder_index != 0 && local_cdb.reorder_index == old_ins.reorder_index) {
                 old_ins.reorder_index = 0;
             }
 
