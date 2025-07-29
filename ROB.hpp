@@ -36,7 +36,7 @@ struct ROBItem {
             (subop == 0b100 && value) || (subop == 0b101 && !value) ||
             (subop == 0b110 && value) || (subop == 0b111 && !value);
 
-        return branched == should_branch;
+        return branched != should_branch;
     }
 
     uint8_t rs1() const { return get_rs1(full_instruction); }
