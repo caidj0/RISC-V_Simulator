@@ -327,14 +327,20 @@ size_t CPU::ALURSSelect() const {
 // 如果 reorder 为 0，直接返回寄存器的值；如果 reorder 不为零，则去 rob
 // 里面找该条记录，如果 ready 则返回对应的值，否则返回 reorder
 RegValueBus CPU::regValue(uint8_t index) const {
-    if (regs.reorder(index) == 0) {
+    auto reorder_index = regs.reorder(index);
+    if (reorder_index == 0) {
         return RegValueBus{0, regs.reg(index)};
     } else {
-        auto item = rob.getItem(regs.reorder(index));
+        auto item = rob.getItem(reorder_index);
         if (item.ready) {
             return RegValueBus{0, item.value};
         }
 
-        return RegValueBus{regs.reorder(index), 0};
+        CommonDataBus cdb_fetched = CDBSelect();
+        if (cdb_fetched.reorder_index == reorder_index) {
+            return RegValueBus{0, cdb_fetched.data};
+        }
+
+        return RegValueBus{reorder_index, 0};
     }
 }

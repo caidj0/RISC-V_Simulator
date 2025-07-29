@@ -65,5 +65,5 @@ class Regs : public Updatable {
 
     uint32_t reg(uint8_t index) const { return _regs[index]; }
 
-    uint8_t reorder(uint8_t index) const { return _reorder[index]; }
+    size_t reorder(uint8_t index) const { return _reorder[index]; }
 };
