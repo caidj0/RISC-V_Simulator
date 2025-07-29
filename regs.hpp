@@ -22,7 +22,7 @@ class Regs : public Updatable {
         for (uint8_t i = 1; i < 32; i++) {
             _regs[i] <= [&, i]() -> uint32_t {
                 RegCommitBus cb = commit_bus;
-                if (cb.reorder_index != 0 && _reorder[i] == cb.reorder_index) {
+                if (cb.rd == i) {
                     return cb.data;
                 }
 

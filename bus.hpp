@@ -50,6 +50,7 @@ struct RegIssueBus {
 
 struct RegCommitBus {
     size_t reorder_index;
+    uint8_t rd;
     uint32_t data;
 };
 

@@ -222,7 +222,7 @@ class ReorderBuffer : public Updatable {
 
     RegCommitBus regCommit() const {
         if (commit() && !clear()) {
-            return RegCommitBus{head, items[head].value};
+            return RegCommitBus{head, items[head].rd(), items[head].value};
         }
         return RegCommitBus();
     }
