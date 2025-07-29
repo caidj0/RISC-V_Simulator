@@ -275,17 +275,14 @@ bool CPU::step(uint8_t &ret) {
 void CPU::pullAndUpdate() {
     // auto c = CDBSelect();
     // std::cout << std::format(
-    //                  "PC: 0x{:08X}, reorder_index: {}, data: {}; ROB head PC: "
-    //                  "0x{:08X}, "
-    //                  "commit: {}",
-    //                  uint32_t(PC), c.reorder_index, c.data,
-    //                  uint32_t(rob.front().PC), rob.commit())
+    //                  "PC: 0x{:08X}, reorder_index: {}, data: {}; ROB head PC:
+    //                  " "0x{:08X}, " "commit: {}", uint32_t(PC),
+    //                  c.reorder_index, c.data, uint32_t(rob.front().PC),
+    //                  rob.commit())
     //           << std::endl;
 
-    if (rob.commit()) {
-        std::cout << std::format("Commit PC: 0x{:08X}",
-                                 uint32_t(rob.front().PC)) << std::endl;
-    }
+    bool commit = rob.commit();
+    uint32_t commit_PC = rob.front().PC;
 
     for (auto &x : updatables) {
         x->pull();
@@ -293,6 +290,14 @@ void CPU::pullAndUpdate() {
 
     for (auto &x : updatables) {
         x->update();
+    }
+
+    if (commit) {
+        std::cout << std::format("Commit PC: 0x{:08X}, regs: ", commit_PC);
+        for (int i = 0; i < 32; i++) {
+            std::cout << std::format("0x{:08X} ", regs.reg(i));
+        }
+        std::cout << std::endl;
     }
 }
 
