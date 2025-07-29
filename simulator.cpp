@@ -6,7 +6,7 @@
 #include "predictor.hpp"
 
 int main() {
-    CPU<NeverBranchPredictor> cpu;
+    CPU<BinaryPredictor<4, WeaklyB>> cpu;
     uint8_t ret;
     while (!cpu.step(ret));
     std::cout << +ret << std::endl;

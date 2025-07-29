@@ -339,7 +339,7 @@ bool CPU<PredictorType>::step(uint8_t &ret) {
 template <typename PredictorType>
     requires std::derived_from<PredictorType, Predictor>
 void CPU<PredictorType>::pullAndUpdate() {
-#ifdef DEBUG
+#ifdef TRACE
     bool commit = rob.commit();
     uint32_t commit_PC = rob.front().PC;
 #endif
@@ -350,7 +350,7 @@ void CPU<PredictorType>::pullAndUpdate() {
     for (auto &x : updatables) {
         x->update();
     }
-#ifdef DEBUG
+#ifdef TRACE
     if (commit) {
         std::cout << std::format("Commit PC: 0x{:08X}, regs: ", commit_PC);
         for (int i = 0; i < 32; i++) {
