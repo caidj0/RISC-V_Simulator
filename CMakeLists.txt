@@ -18,4 +18,4 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-add_executable(code simulator.cpp CPU.cpp utils.cpp)
+add_executable(code simulator.cpp utils.cpp)

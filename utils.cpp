@@ -110,3 +110,14 @@ bool get_variant_flag(uint32_t full_instruction) {
     }
     return false;
 }
+
+ExecuteType getExecuteType(uint8_t op) {
+    if (op == 0b0110111U /* lui */) {
+        return None_T;
+    }
+    if (op == 0b0000011U /* lb, lh, lw, lbu, lhu */) {
+        return Mem_T;
+    }
+
+    return ALU_T;
+}

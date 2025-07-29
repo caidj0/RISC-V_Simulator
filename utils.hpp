@@ -93,3 +93,7 @@ std::vector<T *> collectPointer(Args &&...args) {
 
     return result;
 }
+
+enum ExecuteType { None_T, ALU_T, Mem_T };
+
+ExecuteType getExecuteType(uint8_t op);
