@@ -42,7 +42,7 @@ class Memory : public Updatable, public CDBSource {
             }
 
             MemBus rb = read_bus;
-            if (rb.reorder_index != 0 && rb.reorder_index != reorder_index) {
+            if (rb.reorder_index != 0 && reorder_index == 0) {
                 return DELAY;
             }
             return remain_delay > 0 ? remain_delay - 1 : 0;
