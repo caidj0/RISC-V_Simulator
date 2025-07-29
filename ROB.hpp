@@ -179,24 +179,17 @@ class ReorderBuffer : public Updatable {
             }
         };
 
-        for (size_t i = 1; i <= length; i++) {
-            // 排除不在队列中的指令
-            if (head < query_index) {
-                if (i < head || i >= query_index) {
-                    continue;
-                }
-            } else {
-                if (i < head && i >= query_index) {
-                    continue;
-                }
-            }
-
-            if (items[i].is_store()) {
-                if (!items[i].ready || overlap(load_address, items[i].value)) {
+        size_t current = head;
+        while (current != query_index) {
+            const auto& item = items[current];
+            if (item.is_store()) {
+                if (!item.ready || overlap(load_address, item.value)) {
                     return false;
                 }
             }
+            current = index_inc(current);
         }
+        
         return true;
     }
 

@@ -172,7 +172,7 @@ void CPU::PCInit() {
         } else if (issue) {
             offset = 4;
             switch (get_op(full_instruction)) {
-                case 0b1101111U: /* jalr */
+                case 0b1101111U: /* jal */
                     offset = get_imm(full_instruction);
                     break;
                 case 0b1100011U: /* branch */
@@ -273,14 +273,19 @@ bool CPU::step(uint8_t &ret) {
 }
 
 void CPU::pullAndUpdate() {
-    auto c = CDBSelect();
-    std::cout << std::format(
-                     "PC: 0x{:08X}, reorder_index: {}, data: {}; ROB head PC: "
-                     "0x{:08X}, "
-                     "commit: {}",
-                     uint32_t(PC), c.reorder_index, c.data,
-                     uint32_t(rob.front().PC), rob.commit())
-              << std::endl;
+    // auto c = CDBSelect();
+    // std::cout << std::format(
+    //                  "PC: 0x{:08X}, reorder_index: {}, data: {}; ROB head PC: "
+    //                  "0x{:08X}, "
+    //                  "commit: {}",
+    //                  uint32_t(PC), c.reorder_index, c.data,
+    //                  uint32_t(rob.front().PC), rob.commit())
+    //           << std::endl;
+
+    if (rob.commit()) {
+        std::cout << std::format("Commit PC: 0x{:08X}",
+                                 uint32_t(rob.front().PC)) << std::endl;
+    }
 
     for (auto &x : updatables) {
         x->pull();
