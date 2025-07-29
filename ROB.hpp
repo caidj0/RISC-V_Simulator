@@ -189,7 +189,7 @@ class ReorderBuffer : public Updatable {
             }
             current = index_inc(current);
         }
-        
+
         return true;
     }
 
@@ -225,6 +225,16 @@ class ReorderBuffer : public Updatable {
             return RegCommitBus{head, items[head].rd(), items[head].value};
         }
         return RegCommitBus();
+    }
+
+    PredictFeedbackBus predictFeedback() const {
+        if (commit() && items[head].is_branch()) {
+            return PredictFeedbackBus{true, items[head].branched,
+                                      items[head].is_mispredicted(),
+                                      items[head].PC};
+        }
+
+        return PredictFeedbackBus{};
     }
 
     void pull() {

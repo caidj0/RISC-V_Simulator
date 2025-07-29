@@ -2,6 +2,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "ALU.hpp"
@@ -16,7 +17,6 @@
 // 1-based
 constexpr size_t N_ALU = 4;
 constexpr size_t N_MemRS = 4;
-
 
 template <typename PredictorType>
     requires std::derived_from<PredictorType, Predictor>
@@ -63,6 +63,7 @@ class CPU {
     CPU();
 
     bool step(uint8_t &ret);
+    std::pair<size_t, size_t> predictorStatistics() const;
 };
 
 template <typename PredictorType>
@@ -290,7 +291,10 @@ void CPU<PredictorType>::aluInit() {
 
 template <typename PredictorType>
     requires std::derived_from<PredictorType, Predictor>
-void CPU<PredictorType>::predictorInit() {}
+void CPU<PredictorType>::predictorInit() {
+    predictor.PC = LAM(PC);
+    predictor.feedback = LAM(rob.predictFeedback());
+}
 
 template <typename PredictorType>
     requires std::derived_from<PredictorType, Predictor>
@@ -407,4 +411,10 @@ RegValueBus CPU<PredictorType>::regValue(uint8_t index) const {
 
         return RegValueBus{reorder_index, 0};
     }
+}
+
+template <typename PredictorType>
+    requires std::derived_from<PredictorType, Predictor>
+std::pair<size_t, size_t> CPU<PredictorType>::predictorStatistics() const {
+    return {predictor.totalPredict(), predictor.correctPredict()};
 }

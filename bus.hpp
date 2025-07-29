@@ -73,8 +73,8 @@ T BusSelect(const auto& container, const auto& mapF) {
 }
 
 struct PredictFeedbackBus {
-    uint32_t PC;
     bool vaild_flag;
     bool predict_branch;
-    bool branch;
+    bool is_mispredicted;
+    uint32_t PC;
 };
