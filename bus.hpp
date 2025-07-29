@@ -27,7 +27,7 @@ struct ALUBus {
 
 struct MemBus {
     size_t reorder_index;
-    uint8_t write_mode;
+    uint8_t mode;
     uint32_t address;
     uint32_t input;
 };

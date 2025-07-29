@@ -136,8 +136,7 @@ void CPU::baseWireInit() {
                 default:
                     ret.subop = 0b000;
             }
-        } else if (op_type == U || op_type == J || op_type == S ||
-                   op == 0b0000011) {
+        } else if (op_type == U || op_type == J || op_type == S) {
             ret.subop = 0b000;
         } else {
             ret.subop = subop;

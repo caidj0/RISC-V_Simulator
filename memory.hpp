@@ -72,7 +72,19 @@ class Memory : public Updatable, public CDBSource {
 
             MemBus rb = read_bus;
             if (rb.reorder_index != 0 && reorder_index == 0) {
-                return get(rb.address);
+                uint32_t got = get(rb.address);
+                switch (rb.mode) {
+                    case 0b000U:
+                        return sext<8>(got & 0x000000FFU);
+                    case 0b001U:
+                        return sext<16>(got & 0x0000FFFFU);
+                    case 0b010U:
+                        return got;
+                    case 0b100U:
+                        return got & 0x000000FFU;
+                    case 0b101U:
+                        return got & 0x0000FFFFU;
+                }
             }
             return out;
         };
@@ -118,9 +130,9 @@ class Memory : public Updatable, public CDBSource {
         MemBus wb = write_bus_reg;
         if (wb.reorder_index != 0) {
             mems[wb.address] = wb.input & 0xff;
-            if (wb.write_mode & 0b011) {
+            if (wb.mode & 0b011) {
                 mems[wb.address + 1] = (wb.input >> 8) & 0xff;
-                if (wb.write_mode == 0b010) {
+                if (wb.mode == 0b010) {
                     mems[wb.address + 2] = (wb.input >> 16) & 0xff;
                     mems[wb.address + 3] = (wb.input >> 24) & 0xff;
                 }
