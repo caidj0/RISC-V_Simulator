@@ -6,7 +6,7 @@
 #include "predictor.hpp"
 
 int main() {
-    CPU<CorrelatingPredictor<10, 2>, 12, 6, 2, 6> cpu;
+    CPU<CorrelatingPredictor<5, 2>, 8, 4, 2, 4> cpu;
     uint8_t ret;
     while (!cpu.step(ret));
     std::cout << +ret << std::endl;
