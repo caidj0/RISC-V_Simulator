@@ -165,7 +165,7 @@ class ReorderBuffer : public Updatable {
 
     bool clear() const {
         if (commit()) {
-            return items[head].is_jalr() || items[head].is_mispredicted();
+            return jalr_mispredicted() || items[head].is_mispredicted();
         }
         return false;
     }
@@ -196,7 +196,7 @@ class ReorderBuffer : public Updatable {
     PCBus PCRelocate() const {
         if (commit()) {
             // jalr 指令和 b 指令
-            if (items[head].is_jalr()) {
+            if (jalr_mispredicted()) {
                 return PCBus{true, regs.reg(items[head].rs1()),
                              items[head].imm()};
             }
@@ -208,6 +208,22 @@ class ReorderBuffer : public Updatable {
         }
 
         return PCBus();
+    }
+
+    bool jalr_mispredicted() const {
+        if (!items[head].is_jalr()) {
+            return false;
+        }
+
+        auto head_next = index_inc(head);
+        if (head_next == tail) {
+            return true;
+        }
+
+        uint32_t jaled_PC = items[head_next].PC;
+        uint32_t expected_PC = regs.reg(items[head].rs1()) + items[head].imm();
+
+        return jaled_PC != expected_PC;
     }
 
     MemBus store() const {

@@ -234,10 +234,17 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::PCInit() {
                         offset = get_imm(full_instruction);
                     }
                     break;
+                case 0b1100111U: /* jalr */
+                    RegValueBus rb = regValue(get_rs1(full_instruction));
+                    if (rb.q == 0) {
+                        address = rb.v;
+                        offset = get_imm(full_instruction);
+                    }
+                    break;
             }
         }
 
-        return address + offset;
+        return (address + offset) & 0xFFFFFFFEU;
     };
 
     PC <= LAM(next_PC);
