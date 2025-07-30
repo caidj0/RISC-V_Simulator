@@ -57,7 +57,8 @@ class ReservationStation : public Updatable {
 
     bool is_busy() const { return RSBus(ins).reorder_index != 0; }
 
-    SpecBus execute(const ReorderBuffer<>& rob) const {
+    template<size_t ROBLength>
+    SpecBus execute(const ReorderBuffer<ROBLength>& rob) const {
         if (!clear && is_busy() && is_ready()) {
             RSBus rsbus = ins;
 

@@ -6,7 +6,7 @@
 #include "predictor.hpp"
 
 int main() {
-    CPU<BinaryPredictor<4, WeaklyB>> cpu;
+    CPU<BinaryPredictor<4, WeaklyB>, 12, 6, 2, 6> cpu;
     uint8_t ret;
     while (!cpu.step(ret));
     std::cout << +ret << std::endl;
@@ -14,9 +14,11 @@ int main() {
 #ifdef PROFILE
     auto ps = cpu.predictorStatistics();
     std::cout << std::format(
-                     "Total branch num: {}, correct predict count: {}, "
+                     "Cycle time: {}, total branch num: {}, correct predict "
+                     "count: {}, "
                      "correct ratio: {}",
-                     ps.first, ps.second, 1.0 * ps.second / ps.first)
+                     cpu.cycleTime(), ps.first, ps.second,
+                     1.0 * ps.second / ps.first)
               << std::endl;
 #endif
 
