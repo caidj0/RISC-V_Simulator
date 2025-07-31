@@ -47,7 +47,7 @@ class Predictor : public Updatable {
                                    correct_jalr};
     }
 
-    virtual bool branch() const = 0;
+    virtual bool branch()  = 0;
 
     virtual void pull() {
         total_branch.pull();
@@ -66,12 +66,12 @@ class Predictor : public Updatable {
 
 class AlwaysBranchPredictor : public Predictor {
    public:
-    bool branch() const { return true; }
+    bool branch()  { return true; }
 };
 
 class NeverBranchPredictor : public Predictor {
    public:
-    bool branch() const { return false; }
+    bool branch()  { return false; }
 };
 
 enum BinaryPredictState { StronglyB, WeaklyB, WeaklyNo, StronglyNo };
@@ -110,7 +110,7 @@ class BinaryPredictor : public Predictor {
         }
     }
 
-    bool branch() const {
+    bool branch()  {
         BinaryPredictState state = states[PC & ((1U << Bits) - 1)];
         return state == StronglyB || state == WeaklyB;
     }
@@ -181,7 +181,7 @@ class CorrelatingPredictor : public Predictor {
         }
     }
 
-    bool branch() const {
+    bool branch()  {
         BinaryPredictState state =
             states[std::bitset<M>(histories[PC & ((1U << Bits) - 1)])
                        .to_ulong()];
@@ -246,7 +246,7 @@ class TournamentPredictor : public Predictor {
         }
     }
 
-    bool branch() const {
+    bool branch()  {
         BinaryPredictState bps = states[PC & ((1U << Bits) - 1)];
         return bps == StronglyB || bps == WeaklyB ? predictor1.branch()
                                                   : predictor2.branch();

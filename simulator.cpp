@@ -4,6 +4,9 @@
 
 #include "CPU.hpp"
 #include "predictor.hpp"
+#include "utils.hpp"
+
+size_t wire_time = 1;
 
 int main() {
     typedef CorrelatingPredictor<5, 5> Predictor1;
@@ -11,7 +14,9 @@ int main() {
     typedef TournamentPredictor<5, Predictor1, Predictor2> MixedPredictor;
     CPU<Predictor1, 8, 4, 2, 4> cpu;
     uint8_t ret;
-    while (!cpu.step(ret));
+    while (!cpu.step(ret)) {
+        wire_time++;
+    }
     std::cout << +ret << std::endl;
 
 #ifdef PROFILE

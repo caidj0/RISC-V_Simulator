@@ -60,8 +60,8 @@ struct RegValueBus {
 };
 
 template <typename T>
-T BusSelect(const auto& container, const auto& mapF) {
-    for (const auto& x : container) {
+T BusSelect(auto& container, const auto& mapF) {
+    for (auto& x : container) {
         T temp = mapF(x);
 
         if (temp.reorder_index != 0) {

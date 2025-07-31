@@ -5,18 +5,27 @@
 
 #include "bus.hpp"
 
+extern size_t wire_time;
+
 template <typename T>
 class Wire {
+    T cache;
+    size_t cache_time;
+
    public:
     std::function<T(void)> f;
-    Wire() : f([]() { return T(); }) {}
+    Wire() : cache_time(0), f([]() { return T(); }) {}
     Wire(std::function<T(void)> f) : f(f) {}
-    operator T() const { return f(); }
+    operator T() { return value(); }
     Wire &operator=(std::function<T(void)> f) {
         this->f = f;
         return *this;
     }
-    T value() const { return f(); }
+    T value() {
+        if (cache_time == wire_time) return cache;
+        cache_time = wire_time;
+        return (cache = f());
+    }
 };
 
 class Updatable {

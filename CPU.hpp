@@ -281,7 +281,7 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::memInit() {
     mem.write_bus = LAM(rob.store());
     mem.read_bus = [&]() -> MemBus {
         return BusSelect<MemBus>(
-            mem_rs, [&](const ReservationStation<MemBus> &x) -> MemBus {
+            mem_rs, [&](ReservationStation<MemBus> &x) -> MemBus {
                 return x.execute(rob);
             });
     };
