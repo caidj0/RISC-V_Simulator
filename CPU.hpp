@@ -13,15 +13,16 @@
 #include "rs.hpp"
 #include "utils.hpp"
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
 class CPU {
     Reg<uint32_t> PC;
     Regs regs;
     ReorderBuffer<ROBLength> rob;
-    Memory<MemDelay> mem;
+    MemoryType mem;
     ReservationStation<MemBus> mem_rs[N_MemRS + 1];
     ALU alus[N_ALU + 1];
     ReservationStation<ALUBus> alu_rs[N_ALU + 1];
@@ -65,11 +66,12 @@ class CPU {
     size_t cycleTime() const;
 };
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::baseWireInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::baseWireInit() {
     execute_type = LAM(getExecuteType(get_op(full_instruction)));
     rs_index = [&]() -> size_t {
         switch (execute_type) {
@@ -196,11 +198,12 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::baseWireInit() {
     };
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::regInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::regInit() {
     regs.commit_bus = LAM(rob.regCommit());
     regs.issue_bus = [&]() -> RegIssueBus {
         if (issue) {
@@ -211,11 +214,12 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::regInit() {
     regs.clear = LAM(rob.clear());
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::PCInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::PCInit() {
     next_PC = [&]() -> uint32_t {
         auto relocate = rob.PCRelocate();
         uint32_t address = PC;
@@ -250,11 +254,12 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::PCInit() {
     PC <= LAM(next_PC);
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::robInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::robInit() {
     rob.PC = LAM(PC);
     rob.add_instruction = LAM(issue);
     rob.branched = LAM(predictor.branch());
@@ -262,11 +267,12 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::robInit() {
     rob.cdb = LAM(CDBSelect());
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::memInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::memInit() {
     for (size_t i = 1; i <= N_MemRS; i++) {
         mem_rs[i].new_instruction = [&, i]() -> RSBus {
             return (execute_type == Mem_T && rs_index == i) ? rs_bus : RSBus();
@@ -287,11 +293,12 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::memInit() {
     };
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::aluInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::aluInit() {
     for (size_t i = 1; i <= N_ALU; i++) {
         alu_rs[i].new_instruction = [&, i]() -> RSBus {
             return (execute_type == ALU_T && rs_index == i) ? rs_bus : RSBus();
@@ -307,20 +314,23 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::aluInit() {
     }
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::predictorInit() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS,
+         N_ALU>::predictorInit() {
     predictor.PC = LAM(PC);
     predictor.feedback = LAM(rob.predictFeedback());
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::CPU()
+CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::CPU()
     : PC(),
       regs(),
       rob(regs),
@@ -347,11 +357,12 @@ CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::CPU()
     predictorInit();
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-bool CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::step(
+bool CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::step(
     uint8_t &ret) {
     if (rob.commit() && rob.front().full_instruction == 0x0ff00513U) {
         ret = regs.reg(10);
@@ -361,11 +372,13 @@ bool CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::step(
     return false;
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::pullAndUpdate() {
+void CPU<PredictorType, MemoryType, ROBLength, N_MemRS,
+         N_ALU>::pullAndUpdate() {
 #ifdef TRACE
     bool commit = rob.commit();
     uint32_t commit_PC = rob.front().PC;
@@ -388,21 +401,23 @@ void CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::pullAndUpdate() {
 #endif
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
 CommonDataBus
-CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::CDBSelect() const {
+CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::CDBSelect() const {
     return BusSelect<CommonDataBus>(cdb_sources,
                                     [](CDBSource *x) { return x->CDBOut(); });
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-size_t CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::MemRSSelect()
+size_t CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::MemRSSelect()
     const {
     for (size_t i = 1; i <= N_MemRS; i++) {
         if (!mem_rs[i].is_busy()) {
@@ -412,11 +427,12 @@ size_t CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::MemRSSelect()
     return 0;
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-size_t CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::ALURSSelect()
+size_t CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::ALURSSelect()
     const {
     for (size_t i = 1; i <= N_ALU; i++) {
         if (!alu_rs[i].is_busy()) {
@@ -428,11 +444,12 @@ size_t CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::ALURSSelect()
 
 // 如果 reorder 为 0，直接返回寄存器的值；如果 reorder 不为零，则去 rob
 // 里面找该条记录，如果 ready 则返回对应的值，否则返回 reorder
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-RegValueBus CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::regValue(
+RegValueBus CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::regValue(
     uint8_t index) const {
     auto reorder_index = regs.reorder(index);
     if (reorder_index == 0) {
@@ -452,20 +469,22 @@ RegValueBus CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::regValue(
     }
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-PredictorStatistics CPU<PredictorType, ROBLength, N_MemRS, MemDelay,
+PredictorStatistics CPU<PredictorType, MemoryType, ROBLength, N_MemRS,
                         N_ALU>::predictorStatistics() const {
     return predictor.predictorStatistics();
 }
 
-template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
-          size_t MemDelay, size_t N_ALU>
-    requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-size_t CPU<PredictorType, ROBLength, N_MemRS, MemDelay, N_ALU>::cycleTime()
+size_t CPU<PredictorType, MemoryType, ROBLength, N_MemRS, N_ALU>::cycleTime()
     const {
     return cycle_time;
 }

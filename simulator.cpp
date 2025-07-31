@@ -12,7 +12,9 @@ int main() {
     typedef CorrelatingPredictor<5, 5> Predictor1;
     typedef CorrelatingPredictor<0, 10> Predictor2;
     typedef TournamentPredictor<5, Predictor1, Predictor2> MixedPredictor;
-    CPU<Predictor1, 8, 4, 2, 4> cpu;
+    typedef CacheMemory<4, 4, 4, 0, 2> Cache;
+    
+    CPU<Predictor1, Cache, 8, 4, 4> cpu;
     uint8_t ret;
     while (!cpu.step(ret)) {
         wire_time++;
