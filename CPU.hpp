@@ -2,7 +2,6 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <utility>
 #include <vector>
 
 #include "ALU.hpp"
@@ -61,7 +60,8 @@ class CPU {
     CPU();
 
     bool step(uint8_t &ret);
-    std::pair<size_t, size_t> predictorStatistics() const;
+
+    PredictorStatistics predictorStatistics() const;
     size_t cycleTime() const;
 };
 
@@ -456,9 +456,9 @@ template <typename PredictorType, size_t ROBLength, size_t N_MemRS,
           size_t MemDelay, size_t N_ALU>
     requires(std::derived_from<PredictorType, Predictor> && ROBLength > 0 &&
              N_MemRS > 0 && N_ALU > 0)
-std::pair<size_t, size_t> CPU<PredictorType, ROBLength, N_MemRS, MemDelay,
-                              N_ALU>::predictorStatistics() const {
-    return {predictor.totalPredict(), predictor.correctPredict()};
+PredictorStatistics CPU<PredictorType, ROBLength, N_MemRS, MemDelay,
+                        N_ALU>::predictorStatistics() const {
+    return predictor.predictorStatistics();
 }
 
 template <typename PredictorType, size_t ROBLength, size_t N_MemRS,

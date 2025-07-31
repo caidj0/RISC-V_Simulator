@@ -244,13 +244,20 @@ class ReorderBuffer : public Updatable {
     }
 
     PredictFeedbackBus predictFeedback() const {
-        if (commit() && items[head].is_branch()) {
-            return PredictFeedbackBus{true, items[head].branched,
-                                      items[head].is_mispredicted(),
-                                      items[head].PC};
+        if (commit()) {
+            if (items[head].is_branch()) {
+                return PredictFeedbackBus{
+                    PredictFeedbackBus::Branch, items[head].branched,
+                    items[head].is_mispredicted(), items[head].PC};
+            }
+            if (items[head].is_jalr()) {
+                return PredictFeedbackBus{PredictFeedbackBus::Jalr, 0,
+                                          jalr_mispredicted(),
+                                          items[head].PC};
+            }
         }
 
-        return PredictFeedbackBus{};
+        return PredictFeedbackBus{PredictFeedbackBus::Invalid, 0, 0, 0};
     }
 
     void pull() {

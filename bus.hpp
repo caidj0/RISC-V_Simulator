@@ -73,7 +73,9 @@ T BusSelect(const auto& container, const auto& mapF) {
 }
 
 struct PredictFeedbackBus {
-    bool valid_flag;
+    enum PredictType{
+        Invalid, Branch, Jalr
+    } type;
     bool predict_branch;
     bool is_mispredicted;
     uint32_t PC;

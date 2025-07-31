@@ -8,39 +8,58 @@
 #include "utils.hpp"
 
 class Predictor : public Updatable {
-    Reg<size_t> total_predict;
-    Reg<size_t> correct_predict;
+    Reg<size_t> total_branch;
+    Reg<size_t> correct_branch;
+    Reg<size_t> total_jalr;
+    Reg<size_t> correct_jalr;
 
    public:
     Wire<uint32_t> PC;
     Wire<PredictFeedbackBus> feedback;
 
     Predictor() {
-        total_predict <= [&]() -> size_t {
+        total_branch <= [&]() -> size_t {
             PredictFeedbackBus fb = feedback;
-            return total_predict + fb.valid_flag;
+            return total_branch + (fb.type == PredictFeedbackBus::Branch);
         };
 
-        correct_predict <= [&]() -> size_t {
+        correct_branch <= [&]() -> size_t {
             PredictFeedbackBus fb = feedback;
-            return correct_predict + (fb.valid_flag && !fb.is_mispredicted);
+            return correct_branch + (fb.type == PredictFeedbackBus::Branch &&
+                                     !fb.is_mispredicted);
+        };
+
+        total_jalr <= [&]() -> size_t {
+            PredictFeedbackBus fb = feedback;
+            return total_jalr + (fb.type == PredictFeedbackBus::Jalr);
+        };
+
+        correct_jalr <= [&]() -> size_t {
+            PredictFeedbackBus fb = feedback;
+            return correct_jalr +
+                   (fb.type == PredictFeedbackBus::Jalr && !fb.is_mispredicted);
         };
     }
 
-    size_t totalPredict() const { return total_predict; }
-
-    size_t correctPredict() const { return correct_predict; }
+    PredictorStatistics predictorStatistics() const {
+        return PredictorStatistics{total_branch, correct_branch, total_jalr,
+                                   correct_jalr};
+    }
 
     virtual bool branch() const = 0;
 
     virtual void pull() {
-        total_predict.pull();
-        correct_predict.pull();
+        total_branch.pull();
+        correct_branch.pull();
+        total_jalr.pull();
+        correct_jalr.pull();
     }
 
     virtual void update() {
-        total_predict.update();
-        correct_predict.update();
+        total_branch.update();
+        correct_branch.update();
+        total_jalr.update();
+        correct_jalr.update();
     }
 };
 
@@ -69,7 +88,8 @@ class BinaryPredictor : public Predictor {
             states[i] <= [&, i]() -> BinaryPredictState {
                 PredictFeedbackBus fb = feedback;
 
-                if (!fb.valid_flag || (fb.PC & ((1U << Bits) - 1)) != i) {
+                if (fb.type != PredictFeedbackBus::Branch ||
+                    (fb.PC & ((1U << Bits) - 1)) != i) {
                     return states[i];
                 }
 
@@ -122,7 +142,8 @@ class CorrelatingPredictor : public Predictor {
             histories[i] <= [&, i]() -> std::bitset<M> {
                 PredictFeedbackBus fb = feedback;
 
-                if (!fb.valid_flag || (fb.PC & ((1U << Bits) - 1)) != i) {
+                if (fb.type != PredictFeedbackBus::Branch ||
+                    (fb.PC & ((1U << Bits) - 1)) != i) {
                     return histories[i];
                 }
 
@@ -136,9 +157,10 @@ class CorrelatingPredictor : public Predictor {
             states[i] <= [&, i]() -> BinaryPredictState {
                 PredictFeedbackBus fb = feedback;
                 size_t state_index =
-                    std::bitset<M>(histories[fb.PC & ((1U << Bits) - 1)]).to_ulong();
+                    std::bitset<M>(histories[fb.PC & ((1U << Bits) - 1)])
+                        .to_ulong();
 
-                if (!fb.valid_flag || state_index != i) {
+                if (fb.type != PredictFeedbackBus::Branch || state_index != i) {
                     return states[i];
                 }
 
@@ -160,7 +182,8 @@ class CorrelatingPredictor : public Predictor {
 
     bool branch() const {
         BinaryPredictState state =
-            states[std::bitset<M>(histories[PC & ((1U << Bits) - 1)]).to_ulong()];
+            states[std::bitset<M>(histories[PC & ((1U << Bits) - 1)])
+                       .to_ulong()];
         return state == StronglyB || state == WeaklyB;
     }
 
@@ -169,7 +192,7 @@ class CorrelatingPredictor : public Predictor {
         for (auto &history : histories) {
             history.pull();
         }
-        for (auto &state: states) {
+        for (auto &state : states) {
             state.pull();
         }
     }
@@ -179,7 +202,7 @@ class CorrelatingPredictor : public Predictor {
         for (auto &history : histories) {
             history.update();
         }
-        for (auto &state: states) {
+        for (auto &state : states) {
             state.update();
         }
     }

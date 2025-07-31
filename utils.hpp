@@ -12,7 +12,7 @@ class Wire {
     Wire() : f([]() { return T(); }) {}
     Wire(std::function<T(void)> f) : f(f) {}
     operator T() const { return f(); }
-    Wire& operator=(std::function<T(void)> f) {
+    Wire &operator=(std::function<T(void)> f) {
         this->f = f;
         return *this;
     }
@@ -37,11 +37,11 @@ class Reg : public Updatable {
     operator T() const { return value; }
     void pull() { new_value = f(); }
     void update() { value = new_value; }
-    Reg& operator<=(const std::function<T(void)> f) {
+    Reg &operator<=(const std::function<T(void)> f) {
         this->f = f;
         return *this;
     }
-    Reg& operator=(const T value) {
+    Reg &operator=(const T value) {
         this->value = value;
         return *this;
     };
@@ -97,3 +97,10 @@ std::vector<T *> collectPointer(Args &&...args) {
 enum ExecuteType { None_T, ALU_T, Mem_T };
 
 ExecuteType getExecuteType(uint8_t op);
+
+struct PredictorStatistics {
+    size_t total_branch;
+    size_t correct_branch;
+    size_t total_jalr;
+    size_t correct_jalr;
+};
