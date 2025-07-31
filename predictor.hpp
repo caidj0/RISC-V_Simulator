@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bitset>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 
@@ -205,5 +206,67 @@ class CorrelatingPredictor : public Predictor {
         for (auto &state : states) {
             state.update();
         }
+    }
+};
+
+template <size_t Bits, typename Predictor1, typename Predictor2>
+    requires(Bits <= 32 && std::derived_from<Predictor1, Predictor> &&
+             std::derived_from<Predictor2, Predictor>)
+class TournamentPredictor : public Predictor {
+    Predictor1 predictor1;
+    Predictor2 predictor2;
+    Reg<BinaryPredictState> states[1U << Bits];
+
+   public:
+    TournamentPredictor() : Predictor() {
+        predictor1.PC = LAM(PC);
+        predictor2.PC = LAM(PC);
+        predictor1.feedback = LAM(feedback);
+        predictor2.feedback = LAM(feedback);
+
+        for (size_t i = 0; i < (1U << Bits); i++) {
+            states[i] <= [&, i]() -> BinaryPredictState {
+                PredictFeedbackBus fb = feedback;
+                if (fb.type != PredictFeedbackBus::Branch ||
+                    (fb.PC & ((1U << Bits) - 1)) != i) {
+                    return states[i];
+                }
+
+                switch (states[i]) {
+                    case StronglyB:
+                        return fb.is_mispredicted ? WeaklyB : StronglyB;
+                    case WeaklyB:
+                        return fb.is_mispredicted ? WeaklyNo : StronglyB;
+                    case WeaklyNo:
+                        return fb.is_mispredicted ? WeaklyB : StronglyNo;
+                    default:  // StronglyNo
+                        return fb.is_mispredicted ? WeaklyNo : StronglyNo;
+                }
+            };
+        }
+    }
+
+    bool branch() const {
+        BinaryPredictState bps = states[PC & ((1U << Bits) - 1)];
+        return bps == StronglyB || bps == WeaklyB ? predictor1.branch()
+                                                  : predictor2.branch();
+    }
+
+    void pull() {
+        Predictor::pull();
+        for (auto &state: states) {
+            state.pull();
+        }
+        predictor1.pull();
+        predictor2.pull();
+    }
+
+    void update() {
+        Predictor::update();
+        for (auto &state: states) {
+            state.update();
+        }
+        predictor1.update();
+        predictor2.update();
     }
 };
