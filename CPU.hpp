@@ -63,6 +63,7 @@ class CPU {
     bool step(uint8_t &ret);
 
     PredictorStatistics predictorStatistics() const;
+    MemoryStatistics memoryStatistics() const;
     size_t cycleTime() const;
 };
 
@@ -477,6 +478,16 @@ template <typename PredictorType, typename MemoryType, size_t ROBLength,
 PredictorStatistics CPU<PredictorType, MemoryType, ROBLength, N_MemRS,
                         N_ALU>::predictorStatistics() const {
     return predictor.predictorStatistics();
+}
+
+template <typename PredictorType, typename MemoryType, size_t ROBLength,
+          size_t N_MemRS, size_t N_ALU>
+    requires(std::derived_from<PredictorType, Predictor> &&
+             std::derived_from<MemoryType, BaseMemory> && ROBLength > 0 &&
+             N_MemRS > 0 && N_ALU > 0)
+MemoryStatistics CPU<PredictorType, MemoryType, ROBLength, N_MemRS,
+                        N_ALU>::memoryStatistics() const {
+    return mem.memoryStatistics();
 }
 
 template <typename PredictorType, typename MemoryType, size_t ROBLength,

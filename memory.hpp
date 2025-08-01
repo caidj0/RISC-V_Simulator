@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -19,6 +20,7 @@ class BaseMemory : public CDBSource {
     Wire<bool> clear;
 
     virtual uint32_t get_instruction() const = 0;
+    virtual MemoryStatistics memoryStatistics() const = 0;
 };
 
 template <size_t DELAY>
@@ -29,6 +31,9 @@ class Memory : public Updatable, public BaseMemory {
     Reg<size_t> remain_delay;
     Reg<uint32_t> instruction;
     Reg<uint32_t> out;
+
+    Reg<size_t> read_count;
+    Reg<size_t> write_count;
 
     Reg<MemBus> write_bus_reg;
 
@@ -55,6 +60,19 @@ class Memory : public Updatable, public BaseMemory {
                 return DELAY;
             }
             return remain_delay > 0 ? remain_delay - 1 : 0;
+        };
+        read_count <= [&]() -> size_t {
+            if (!clear && reorder_index == 0 &&
+                read_bus.value().reorder_index != 0) {
+                return read_count + 1;
+            }
+            return read_count;
+        };
+        write_count <= [&]() -> size_t {
+            if (!clear && write_bus.value().reorder_index != 0) {
+                return write_count + 1;
+            }
+            return write_count;
         };
         reorder_index <= [&]() -> size_t {
             if (clear) {
@@ -127,6 +145,11 @@ class Memory : public Updatable, public BaseMemory {
         instruction.pull();
         out.pull();
         write_bus_reg.pull();
+
+#ifdef PROFILE
+        read_count.pull();
+        write_count.pull();
+#endif
     }
 
     void update() {
@@ -135,6 +158,11 @@ class Memory : public Updatable, public BaseMemory {
         instruction.update();
         out.update();
         write_bus_reg.update();
+
+#ifdef PROFILE
+        read_count.update();
+        write_count.update();
+#endif
 
         MemBus wb = write_bus_reg;
         if (wb.reorder_index != 0) {
@@ -147,6 +175,10 @@ class Memory : public Updatable, public BaseMemory {
                 }
             }
         }
+    }
+
+    MemoryStatistics memoryStatistics() const {
+        return MemoryStatistics{read_count, write_count, 0};
     }
 };
 
@@ -187,6 +219,10 @@ class CacheMemory : public Updatable, public BaseMemory {
     Reg<MemBus> read_bus_reg;
     Reg<uint32_t> instruction;
     Reg<size_t> remain_delay;
+
+    Reg<size_t> read_count;
+    Reg<size_t> write_count;
+    Reg<size_t> read_cache_hit_count;
 
     std::mt19937 rng;
     std::uniform_int_distribution<> replace_selector;
@@ -321,6 +357,32 @@ class CacheMemory : public Updatable, public BaseMemory {
             }
         }
 
+        read_count <= [&]() -> size_t {
+            if (!clear && MemBus(read_bus_reg).reorder_index == 0 &&
+                read_bus.value().reorder_index != 0) {
+                return read_count + 1;
+            }
+            return read_count;
+        };
+        write_count <= [&]() -> size_t {
+            if (!clear && write_bus.value().reorder_index != 0) {
+                return write_count + 1;
+            }
+            return write_count;
+        };
+        read_cache_hit_count <= [&]() -> size_t {
+            const MemBus rb = read_bus;
+            auto target_group_index = getGroupIndex(rb.address);
+            auto target_mark = getMark(rb.address);
+            auto result = findInGroup(target_group_index, target_mark);
+
+            if (!clear && MemBus(read_bus_reg).reorder_index == 0 &&
+                rb.reorder_index != 0 && result.first) {
+                return read_cache_hit_count + 1;
+            }
+            return read_cache_hit_count;
+        };
+
         remain_delay <= [&]() -> size_t {
             if (clear) {
                 return 0;
@@ -393,6 +455,12 @@ class CacheMemory : public Updatable, public BaseMemory {
         remain_delay.pull();
         random_index.pull();
 
+#ifdef PROFILE
+        read_count.pull();
+        write_count.pull();
+        read_cache_hit_count.pull();
+#endif
+
         for (auto &group : groups) {
             for (auto &item : group.items) {
                 item.pull();
@@ -406,6 +474,12 @@ class CacheMemory : public Updatable, public BaseMemory {
         instruction.update();
         remain_delay.update();
         random_index.update();
+
+#ifdef PROFILE
+        read_count.update();
+        write_count.update();
+        read_cache_hit_count.update();
+#endif
 
         for (auto &group : groups) {
             for (auto &item : group.items) {
@@ -424,5 +498,9 @@ class CacheMemory : public Updatable, public BaseMemory {
                 }
             }
         }
+    }
+
+    MemoryStatistics memoryStatistics() const {
+        return MemoryStatistics{read_count, write_count, read_cache_hit_count};
     }
 };
