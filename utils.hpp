@@ -43,7 +43,7 @@ class Reg : public Updatable {
     std::function<T(void)> f;
     Reg(std::function<T(void)> f) : value(), new_value(), f(f) {}
     Reg() : Reg([]() { return T(); }) {}
-    operator const T&() const { return value; }
+    operator const T &() const { return value; }
     void pull() { new_value = f(); }
     void update() { value = new_value; }
     Reg &operator<=(const std::function<T(void)> f) {
@@ -112,4 +112,10 @@ struct PredictorStatistics {
     size_t correct_branch;
     size_t total_jalr;
     size_t correct_jalr;
+};
+
+struct MemoryStatistics {
+    size_t total_read_count;
+    size_t total_write_count;
+    size_t read_cache_hit_count;
 };

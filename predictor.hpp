@@ -50,17 +50,21 @@ class Predictor : public Updatable {
     virtual bool branch()  = 0;
 
     virtual void pull() {
+#ifdef PROFILE
         total_branch.pull();
         correct_branch.pull();
         total_jalr.pull();
         correct_jalr.pull();
+#endif
     }
 
     virtual void update() {
+#ifdef PROFILE
         total_branch.update();
         correct_branch.update();
         total_jalr.update();
         correct_jalr.update();
+#endif
     }
 };
 
@@ -254,7 +258,7 @@ class TournamentPredictor : public Predictor {
 
     void pull() {
         Predictor::pull();
-        for (auto &state: states) {
+        for (auto &state : states) {
             state.pull();
         }
         predictor1.pull();
@@ -263,7 +267,7 @@ class TournamentPredictor : public Predictor {
 
     void update() {
         Predictor::update();
-        for (auto &state: states) {
+        for (auto &state : states) {
             state.update();
         }
         predictor1.update();
